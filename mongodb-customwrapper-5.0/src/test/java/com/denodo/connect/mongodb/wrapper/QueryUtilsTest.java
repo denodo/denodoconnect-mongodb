@@ -194,7 +194,23 @@ public class QueryUtilsTest {
 
 
         DBObject query = QueryUtils.buildQuery(simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \".*bc.*\"}}", query.toString());
+        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^.*bc.*$\"}}", query.toString());
+
+        simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b$c");
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\$c$\"}}", query.toString());
+
+        simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b^c");
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\^c$\"}}", query.toString());
+
+        simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b.c");
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\.c$\"}}", query.toString());
+
+        simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b.*c");
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\.\\\\*c$\"}}", query.toString());
     }
 
     /*
@@ -222,7 +238,7 @@ public class QueryUtilsTest {
     public void testORConditionQuery() {
 
         CustomWrapperSimpleCondition firstCondition =
-            buildSimpleCondition("status", OPERATOR_LIKE, Types.VARCHAR, "A%");
+            buildSimpleCondition("status", OPERATOR_LIKE, Types.VARCHAR, "A_");
         CustomWrapperSimpleCondition secondCondition =
             buildSimpleCondition("age", OPERATOR_NE, Types.NUMERIC, Integer.valueOf(25));
 
@@ -230,7 +246,7 @@ public class QueryUtilsTest {
         CustomWrapperOrCondition orCondition = buildORCondition(firstCondition, secondCondition);
 
         DBObject query = QueryUtils.buildQuery(orCondition);
-        Assert.assertEquals("{ \"$or\" : [ { \"status\" : { \"$regex\" : \"A.*\"}} , { \"age\" : { \"$ne\" : 25}}]}",
+        Assert.assertEquals("{ \"$or\" : [ { \"status\" : { \"$regex\" : \"^A.$\"}} , { \"age\" : { \"$ne\" : 25}}]}",
             query.toString());
     }
 
@@ -259,7 +275,7 @@ public class QueryUtilsTest {
     }
 
     /*
-     * VDP condition: WHERE price = 1.99 AND ( qty < 20) OR (sale = true))
+     * VDP condition: WHERE price = 1.99 OR ( qty < 20) AND (sale = true))
      */
     @Test
     public void testORComplexConditionQuery() {

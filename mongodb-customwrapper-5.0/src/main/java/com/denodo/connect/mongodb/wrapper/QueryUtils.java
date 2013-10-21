@@ -47,6 +47,14 @@ public final class QueryUtils {
 
     private static Map<String, String> mongoOperators = getMongoOperators();
 
+    private static final String START_OF_LINE = "^";
+    private static final String END_OF_LINE = "$";
+    private static final String SQL_SINGLE_CHARACTER = "_";
+    private static final String MONGODB_SINGLE_CHARACTER = ".";
+    private static final String SQL_ZERO_MORE_CHARACTER = "%";
+    private static final String MONGODB_ZERO_MORE_CHARACTER = "*";
+    private static final String ESCAPE_CHARACTER = "\\";
+
     /*
      * Equivalences between VDP and MongoDB operators.
      */
@@ -124,16 +132,27 @@ public final class QueryUtils {
      * VDP LIKE  ---  MongoDB $regex
      *
      *   '%'     ---  '*': 0 or more quantifier
-     *   '_'     ---  '.': match any character
+     *   '_'     ---  '.': match any character of length 1
      *
+     * The "start of line" metacharacter (^) matches only at the start of the string,
+     * and the "end of line" metacharacter ($) matches only at the end of the string,
+     * or before a terminating newline.
      */
     private static Object translateRegex(Object value) {
 
         String regex = (String) value;
-        regex = regex.replace("_", ".");
-        regex = regex.replace("%", ".*");
 
-        return regex;
+        // escape metacharacters
+        regex = regex.replace(START_OF_LINE, ESCAPE_CHARACTER + START_OF_LINE);
+        regex = regex.replace(END_OF_LINE, ESCAPE_CHARACTER + END_OF_LINE);
+        regex = regex.replace(MONGODB_SINGLE_CHARACTER, ESCAPE_CHARACTER + MONGODB_SINGLE_CHARACTER);
+        regex = regex.replace(MONGODB_ZERO_MORE_CHARACTER, ESCAPE_CHARACTER + MONGODB_ZERO_MORE_CHARACTER);
+
+        // convert SQL to MongoDB
+        regex = regex.replace(SQL_SINGLE_CHARACTER, MONGODB_SINGLE_CHARACTER);
+        regex = regex.replace(SQL_ZERO_MORE_CHARACTER, MONGODB_SINGLE_CHARACTER + MONGODB_ZERO_MORE_CHARACTER);
+
+        return START_OF_LINE + regex + END_OF_LINE;
     }
 
 }
