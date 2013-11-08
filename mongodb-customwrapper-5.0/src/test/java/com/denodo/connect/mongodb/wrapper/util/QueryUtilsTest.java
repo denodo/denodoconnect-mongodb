@@ -19,7 +19,7 @@
  *
  * =============================================================================
  */
-package com.denodo.connect.mongodb.wrapper;
+package com.denodo.connect.mongodb.wrapper.util;
 
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Assert;
@@ -50,7 +51,10 @@ import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpress
 import com.mongodb.DBObject;
 
 
-
+/**
+ * PowerMock used with Mockito to enable mocking of final classes like CustomWrapperSimpleCondition.
+ *
+ */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({CustomWrapperSimpleCondition.class, CustomWrapperAndCondition.class, CustomWrapperOrCondition.class})
 public class QueryUtilsTest {
@@ -59,10 +63,29 @@ public class QueryUtilsTest {
     private static CustomWrapperSimpleCondition buildSimpleCondition(String fieldName,
         String operator, int valueType, Object value) {
 
+        CustomWrapperFieldExpression field = new CustomWrapperFieldExpression(fieldName);
+        return buildSimpleCondition(field, operator, valueType, value);
+
+    }
+
+    private static CustomWrapperSimpleCondition buildSimpleConditionCompoundField(String fieldName,
+        List<String> subFieldNames, String operator, int valueType, Object value) {
+
+        List<CustomWrapperFieldExpression> subFields = new ArrayList<CustomWrapperFieldExpression>();
+        for (String name : subFieldNames) {
+            subFields.add(new CustomWrapperFieldExpression(name));
+        }
+        CustomWrapperFieldExpression field = new CustomWrapperFieldExpression(fieldName, subFields);
+        return buildSimpleCondition(field, operator, valueType, value);
+
+    }
+
+    private static CustomWrapperSimpleCondition buildSimpleCondition(CustomWrapperFieldExpression field,
+        String operator, int valueType, Object value) {
+
         CustomWrapperSimpleCondition simpleCondition = PowerMockito.mock(CustomWrapperSimpleCondition.class);
         when(simpleCondition.isSimpleCondition()).thenReturn(true);
 
-        CustomWrapperFieldExpression field = new CustomWrapperFieldExpression(fieldName);
         CustomWrapperSimpleExpression rightExpression = new CustomWrapperSimpleExpression(valueType, value);
 
         when(simpleCondition.getField()).thenReturn(field);
@@ -114,14 +137,13 @@ public class QueryUtilsTest {
 
 
     /*
-     * VDP condition: WHERE status != "A"
+     * VDP condition: WHERE status <> "A"
      */
     @Test
     public void testNotEqualConditionQuery() {
 
         CustomWrapperSimpleCondition simpleCondition =
             buildSimpleCondition("status", OPERATOR_NE, Types.VARCHAR, "A");
-
 
         DBObject query = QueryUtils.buildQuery(simpleCondition);
         Assert.assertEquals("{ \"status\" : { \"$ne\" : \"A\"}}", query.toString());
@@ -135,7 +157,6 @@ public class QueryUtilsTest {
 
         CustomWrapperSimpleCondition simpleCondition =
             buildSimpleCondition("age", OPERATOR_GT, Types.NUMERIC, Integer.valueOf(25));
-
 
         DBObject query = QueryUtils.buildQuery(simpleCondition);
         Assert.assertEquals("{ \"age\" : { \"$gt\" : 25}}", query.toString());
@@ -164,7 +185,6 @@ public class QueryUtilsTest {
         CustomWrapperSimpleCondition simpleCondition =
             buildSimpleCondition("age", OPERATOR_LT, Types.NUMERIC, Integer.valueOf(25));
 
-
         DBObject query = QueryUtils.buildQuery(simpleCondition);
         Assert.assertEquals("{ \"age\" : { \"$lt\" : 25}}", query.toString());
     }
@@ -185,6 +205,10 @@ public class QueryUtilsTest {
 
     /*
      * VDP condition: WHERE user_id like "%bc%"
+     *                WHERE user_id like "b$c"
+     *                WHERE user_id like "b^c"
+     *                WHERE user_id like "b.c"
+     *                WHERE user_id like "b.*c"
      */
     @Test
     public void testLikeConditionQuery() {
@@ -232,7 +256,7 @@ public class QueryUtilsTest {
     }
 
     /*
-     * VDP condition: WHERE status like "A%" OR age != 25
+     * VDP condition: WHERE status like "A%" OR age <> 25
      */
     @Test
     public void testORConditionQuery() {
@@ -297,4 +321,45 @@ public class QueryUtilsTest {
         Assert.assertEquals("{ \"$or\" : [ { \"price\" : 1.99} , { \"$and\" : [ { \"qty\" : { \"$lt\" : 20}} , { \"sale\" : true}]}]}",
             query.toString());
     }
+
+    /*
+     * VDP condition: WHERE phoneNumbers.phoneNumbers_ITEM.type <> home'
+     *                WHERE ban_friends_id.ban_friends_id_ITEM <> BAN123
+     */
+    @Test
+    public void testCompoundFields() {
+
+        CustomWrapperSimpleCondition simpleCondition = buildSimpleConditionCompoundField(
+            "phoneNumbers", Arrays.asList("phoneNumbers_ITEM", "type"),
+            OPERATOR_NE, Types.VARCHAR, "home");
+
+        DBObject query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"phoneNumbers.type\" : { \"$ne\" : \"home\"}}", query.toString());
+
+        simpleCondition = buildSimpleConditionCompoundField("ban_friends_id", Arrays.asList("ban_friends_id_ITEM"),
+            OPERATOR_NE, Types.VARCHAR, "BAN123");
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"ban_friends_id\" : { \"$ne\" : \"BAN123\"}}", query.toString());
+    }
+
+    /*
+     * VDP condition: WHERE _id = "5"
+     *                WHERE _id = "508dec9f5a5c6fa3c8cde08b"
+     */
+    @Test
+    public void testIdField() {
+
+        CustomWrapperSimpleCondition simpleCondition =
+            buildSimpleCondition("_id", OPERATOR_EQ, Types.VARCHAR, "5");
+
+        DBObject query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"_id\" : \"5\"}", query.toString());
+
+        simpleCondition =
+            buildSimpleCondition("_id", OPERATOR_EQ, Types.VARCHAR, "508dec9f5a5c6fa3c8cde08b");
+
+        query = QueryUtils.buildQuery(simpleCondition);
+        Assert.assertEquals("{ \"_id\" : { \"$oid\" : \"508dec9f5a5c6fa3c8cde08b\"}}", query.toString());
+    }
+
 }

@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-5.0</artifactId>
-    <version>20131008</version>
+    <version>20131108</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-5.0</name>
 
@@ -162,7 +162,7 @@
  <!--  PowerMock used with Mockito to enable mocking of final classes like -->
  <!--  CustomWrapperSimpleCondition.                                       -->   
  <!--                                                                      --> 
- <!--  Supported versions:                                                 -->
+ <!--  Compatible versions:                                                 -->
  <!--       Mockito                 PowerMock                              -->
  <!--       1.9.0-rc1 & 1.9.0       1.4.10 - 1.4.12                        -->
  <!--  ******************************************************************* -->

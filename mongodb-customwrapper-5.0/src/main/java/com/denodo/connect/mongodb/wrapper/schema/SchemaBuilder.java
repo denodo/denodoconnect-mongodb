@@ -1,0 +1,97 @@
+/*
+ * =============================================================================
+ *
+ *   This software is part of the denodo developer toolkit.
+ *
+ *   Copyright (c) 2013, denodo technologies (http://www.denodo.com)
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ * =============================================================================
+ */
+package com.denodo.connect.mongodb.wrapper.schema;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+
+import org.bson.types.BasicBSONList;
+
+import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+
+
+public class SchemaBuilder {
+
+    /*
+     * Indicates the name of an element array. When used at MongoDB queries this name
+     * will be removed.
+     * For example: 'memos' field contains an array that contains subdocuments with the field 'by':
+     * VDP will query for 'memos.memos_ITEM.by' and MongoDB will query for 'memos.by'.
+     */
+    public static final String ARRAY_ITEM_SUFFIX = "_ITEM";
+
+    private DocumentType type;
+
+
+    public SchemaBuilder() {
+        this.type = new DocumentType("Schema");
+    }
+
+    public void addToSchema(DBObject document) {
+
+        for (String key : document.keySet()) {
+            Object field = document.get(key);
+            Type fieldType = getFieldType(key, field);
+            this.type.add(fieldType);
+        }
+    }
+
+    public CustomWrapperSchemaParameter[] buildSchema() {
+
+        Collection<CustomWrapperSchemaParameter> schema = new ArrayList<CustomWrapperSchemaParameter>();
+        for (Type t : this.type.getTypes()) {
+            schema.add(t.buildSchemaParameter());
+        }
+
+        return schema.toArray(new CustomWrapperSchemaParameter[schema.size()]);
+    }
+
+    private Type getFieldType(String key, Object field) {
+
+        Type fieldType = null;
+        if (field instanceof BasicBSONList) {
+            BasicBSONList array = (BasicBSONList) field;
+            ArrayType arrayType = new ArrayType(key);
+            for (Object item : array) {
+                arrayType.add(getFieldType(key + ARRAY_ITEM_SUFFIX, item));
+            }
+
+            fieldType = arrayType;
+
+        } else if (field instanceof BasicDBObject) {
+            BasicDBObject subDocument = (BasicDBObject) field;
+            DocumentType documentType = new DocumentType(key);
+            for (Map.Entry<String, Object> entry : subDocument.entrySet()) {
+                documentType.add(getFieldType(entry.getKey(), entry.getValue()));
+            }
+            fieldType = documentType;
+        } else {
+            fieldType = new SimpleType(key, field.getClass());
+        }
+
+        return fieldType;
+    }
+
+}

@@ -29,48 +29,37 @@ import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditi
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.UnknownHostException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.bson.BSONObject;
 
+import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
+import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
+import com.denodo.connect.mongodb.wrapper.util.QueryUtils;
 import com.denodo.vdb.engine.customwrapper.AbstractCustomWrapper;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperConfiguration;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperException;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperInputParameter;
-import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression;
-import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression.ORDER;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperResult;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
-import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditionHolder;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.input.type.CustomWrapperInputParameterTypeFactory;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoException;
-import com.mongodb.ServerAddress;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
 
     private static final Logger logger = Logger.getLogger(MongoDBWrapper.class);
-
-    private static Map<String, Integer> sqlTypes = getSQLTypes();
-    private static Map<ORDER, Integer> mongoOrders = getMongoOrders();
-    private static Map<String, MongoClient> mongoConnections = new HashMap<String, MongoClient>();
 
     private static final String HOST = "Host";
     private static final String PORT = "Port";
@@ -78,10 +67,18 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String PASSWORD = "Password";
     private static final String DATABASE = "Database";
     private static final String COLLECTION = "Collection";
-    private static final String FIELDS = "Fields field1[[:type1],field2[:type2],...]";
+    private static final String FIELDS = "Fields";
+    private static final String INTROSPECTION_QUERY = "Introspection query";
+
+    private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
 
 
-    public static Map<String, Integer> getSQLTypes() {
+    // schema cache, so we do not have to recalculate the schema for each execution of a custom wrapper view
+    private static Map<Map<String, String>, CustomWrapperSchemaParameter[]> schemaCache =
+        new HashMap<Map<String,String>, CustomWrapperSchemaParameter[]>();
+
+
+    private static Map<String, Integer> getSQLTypes() {
 
         Map<String, Integer> map = new HashMap<String, Integer>();
 
@@ -89,25 +86,13 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         Field[] fields = java.sql.Types.class.getFields();
         for (int i = 0; i < fields.length; i++) {
             try {
-                String name = fields[i].getName();
+                String name = fields[i].getName().toLowerCase();
                 Integer value = (Integer) fields[i].get(null);
                 map.put(name, value);
             } catch (IllegalAccessException e) {
-                logger.debug("Illegal access getting SQL types:", e);
+                logger.debug("Illegal access getting SQL types: ", e);
             }
         }
-        return map;
-    }
-
-    /*
-     * In MongoDB sort value is either 1 for ascending or -1 for descending.
-     */
-    private static Map<ORDER, Integer> getMongoOrders() {
-
-        Map<ORDER, Integer> map = new HashMap<ORDER, Integer>();
-        map.put(ORDER.ASC, Integer.valueOf(1));
-        map.put(ORDER.DESC, Integer.valueOf(-1));
-
         return map;
     }
 
@@ -124,10 +109,12 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 false, CustomWrapperInputParameterTypeFactory.passwordType()),
             new CustomWrapperInputParameter(DATABASE, "Database name ",
                 true, CustomWrapperInputParameterTypeFactory.stringType()),
-            new CustomWrapperInputParameter(COLLECTION, "Collection name.  A collection is the equivalent of an RDBMS table, but do not enforce a schema ",
+            new CustomWrapperInputParameter(COLLECTION, "Collection name ",
                 true, CustomWrapperInputParameterTypeFactory.stringType()),
-            new CustomWrapperInputParameter(FIELDS, "Fields documents to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
-                true, CustomWrapperInputParameterTypeFactory.stringType())
+            new CustomWrapperInputParameter(FIELDS, "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
+                false, CustomWrapperInputParameterTypeFactory.stringType()),
+            new CustomWrapperInputParameter(INTROSPECTION_QUERY, "Documents retrieved by this query will be analyzed to reveal their fields and build the view schema. An empty query selects all documents in the collection ",
+                false, CustomWrapperInputParameterTypeFactory.stringType())
             };
     }
 
@@ -136,6 +123,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         CustomWrapperConfiguration configuration = super.getConfiguration();
         configuration.setDelegateProjections(true);
+        configuration.setDelegateCompoundFieldProjections(true);
         configuration.setDelegateOrConditions(true);
         configuration.setDelegateOrderBy(true);
         configuration.setAllowedOperators(new String[] {
@@ -150,6 +138,50 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public CustomWrapperSchemaParameter[] getSchemaParameters(
         final Map<String, String> inputValues) throws CustomWrapperException {
 
+        try {
+            // Check input here so we can inform the user about errors at base view creation time.
+            checkInput(inputValues);
+
+            CustomWrapperSchemaParameter[] schema = schemaCache.get(inputValues);
+            if (schema == null) {
+                String fields = inputValues.get(FIELDS);
+                if (StringUtils.isNotBlank(fields)) {
+                    schema = getSchemaFromFields(inputValues);
+                } else {
+                    schema = getSchemaFromQuery(inputValues);
+                }
+
+                schemaCache.put(inputValues, schema);
+            }
+
+            return schema;
+
+        } catch (Exception e) {
+            String errorMsg = "MongoDB wrapper error. " + e.getMessage();
+            logger.error(errorMsg, e);
+            throw new CustomWrapperException(errorMsg, e);
+        }
+
+    }
+
+    private static void checkInput(Map<String, String> inputValues) {
+
+        String user = inputValues.get(USER);
+        String password = inputValues.get(PASSWORD);
+
+        if (StringUtils.isNotBlank(user) && StringUtils.isBlank(password)) {
+            throw new IllegalArgumentException(PASSWORD + " is missing.");
+        }
+    }
+
+    /*
+     * Only simple types are allowed. An introspection query should be used for
+     * configuring documents with complex field types like Types.Array and
+     * Types.Struct.
+     */
+    private static CustomWrapperSchemaParameter[] getSchemaFromFields(
+        final Map<String, String> inputValues) {
+
         boolean searchable = true;
         boolean updateable = true;
         boolean nullable = true;
@@ -163,23 +195,74 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             String[] field = fields[index].split(":");
             int type = Types.VARCHAR;
             if (field.length == 2) {
-                if (sqlTypes.containsKey(field[1])) {
-                    type = sqlTypes.get(field[1]).intValue();
-                } else {
-                    String errorMsg = "Unsupported field type: '" + field[1]
-                        + "'. Supported types are: " + sqlTypes.keySet();
-                    logger.error(errorMsg);
-                    throw new CustomWrapperException(errorMsg);
-                }
+                type = getSQLType(field[1]);
             }
 
             parameters[index] = new CustomWrapperSchemaParameter(field[0], type,
-                null, searchable, CustomWrapperSchemaParameter.NOT_SORTABLE,
+                null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
                 !updateable, nullable, !mandatory);
 
         }
 
         return parameters;
+
+    }
+
+    private static int getSQLType(String userType) {
+
+        int type = -1;
+        String lowerCaseType = userType.toLowerCase();
+        Integer typeAsInteger = SQL_TYPES.get(lowerCaseType);
+        if (typeAsInteger != null) {
+            type = typeAsInteger.intValue();
+            if (type == Types.ARRAY || type == Types.STRUCT) {
+                throw new IllegalArgumentException("You should use an " + INTROSPECTION_QUERY
+                    + " for configuring fields of type " + userType);
+            }
+        } else {
+            Set<String> supportedTypes = new HashSet<String>(SQL_TYPES.keySet());
+            supportedTypes.remove("array");
+            supportedTypes.remove("struct");
+            throw new IllegalArgumentException("Unsupported field type: '" + userType
+                + "'. Supported types are: " + supportedTypes);
+        }
+        return type;
+    }
+
+    /*
+     * Builds the schema as the union of the fields of all the documents retrieved by
+     * the introspection query.
+     *
+     * Due to the fact:
+     * - Documents in the same collection do not need to have the same set of fields.
+     * Then, all the documents returned by the query have to be considered when building the schema.
+     *
+     * Due to the fact:
+     * - Common fields in a collection's documents may hold different types of data.
+     * Then, the structure of a common field will be the highest common denominator between
+     * all the fields with the same name.
+     *
+     */
+    private static CustomWrapperSchemaParameter[] getSchemaFromQuery(
+        final Map<String, String> inputValues) throws IOException {
+
+        String jsonQuery = inputValues.get(INTROSPECTION_QUERY);
+
+        MongoDBClient client = connect(inputValues);
+        DBCursor cursor = client.query(jsonQuery);
+        SchemaBuilder builder = new SchemaBuilder();
+        while (cursor.hasNext()) {
+            DBObject document = cursor.next();
+            builder.addToSchema(document);
+        }
+
+        CustomWrapperSchemaParameter[] schema = builder.buildSchema();
+        if (schema.length == 0) {
+            throw new IllegalArgumentException(INTROSPECTION_QUERY + " does not retrieve any document");
+        }
+
+
+        return schema;
 
     }
 
@@ -191,183 +274,51 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         try {
 
-            String host = inputValues.get(HOST);
-            String port = inputValues.get(PORT);
-            String user = inputValues.get(USER);
-            String password = inputValues.get(PASSWORD);
-            String databaseName = inputValues.get(DATABASE);
-            String collectionName = inputValues.get(COLLECTION);
+            MongoDBClient client = connect(inputValues);
+            DBCursor cursor = query(client, condition);
 
-            MongoClient mongoClient = getConnection(host, port);
-            DB db = mongoClient.getDB(databaseName);
-
-            boolean authenticated = authenticate(db, user, password);
-            if (authenticated) {
-                DBCollection collection = db.getCollection(collectionName);
-                DBCursor cursor = query(collection, condition);
-                while (cursor.hasNext()) {
-                    DBObject document = cursor.next();
-
-                    try {
-                        List<Object> params = new ArrayList<Object>();
-                        for (CustomWrapperFieldExpression field : projectedFields) {
-                            params.add(getField(document, field.getName()));
-                        }
-
-                        result.addRow(params.toArray(), projectedFields);
-
-                    } catch (final Exception e) {
-                        logger.error("Error executing the stored procedure", e);
-                        throw new CustomWrapperException(
-                            "Exception while executing mongoDB wrapper", e);
-                    }
+            CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
+            List<Object> row = new ArrayList<Object>();
+            while (cursor.hasNext()) {
+                DBObject document = cursor.next();
+                for (CustomWrapperFieldExpression field : projectedFields) {
+                    Object column = DocumentUtils.buildVDPColumn(document, field.getName(), schema);
+                    row.add(column);
                 }
 
-            } else {
-                String errorMsg = "MongoDB authentication error: wrong user/password";
-                logger.error(errorMsg);
-                throw new CustomWrapperException(errorMsg);
+                result.addRow(row.toArray(), projectedFields);
+                row.clear();
             }
+
         } catch (Exception e) {
-            String errorMsg = "MongoDB wrapper error:" + e.getMessage();
+            String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
             throw new CustomWrapperException(errorMsg, e);
         }
     }
 
-    private static MongoClient getConnection(String host, String port)
-        throws CustomWrapperException {
+    private static MongoDBClient connect(final Map<String, String> inputValues) throws IOException {
 
-        try {
+        String host = inputValues.get(HOST);
+        String portAsString = inputValues.get(PORT);
+        Integer port = (portAsString == null) ? null : Integer.valueOf(portAsString);
+        String user = inputValues.get(USER);
+        String password = inputValues.get(PASSWORD);
+        String dbName = inputValues.get(DATABASE);
+        String collectionName = inputValues.get(COLLECTION);
 
-            String connectionID = getConnectionID(host, port);
-            logger.debug("Getting MongoDB connection for " + connectionID);
-            MongoClient mongoClient = mongoConnections.get(connectionID);
-            if ( mongoClient == null) {
-                logger.debug("MongoDB connection '" + connectionID + "' does not exist, creating it... ");
-                ServerAddress connectionAddress = getConnectionAddress(host, port);
-                mongoClient = new MongoClient(connectionAddress);
-                testConnection(mongoClient);
-                mongoConnections.put(connectionID, mongoClient);
-            }
-
-            return mongoClient;
-
-        } catch (MongoException e) {
-            String errorMsg = "MongoDB connection error: " + e.getMessage();
-            logger.error(errorMsg, e);
-            throw new CustomWrapperException(errorMsg, e);
-        }
+        return new MongoDBClient(host, port, user, password, dbName, collectionName);
     }
 
-    private static String getConnectionHost(String host) {
-        return (StringUtils.isNotEmpty(host)) ? host : ServerAddress.defaultHost();
-    }
+    private DBCursor query(MongoDBClient client, final CustomWrapperConditionHolder condition) {
 
-    private static int getConnectionPort(String port) {
-        return (StringUtils.isNotEmpty(port)) ? Integer.parseInt(port) : ServerAddress.defaultPort();
-    }
+        DBObject query = QueryUtils.buildQuery(condition.getComplexCondition());
+        logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + query + "'");
 
-    private static String getConnectionID(String host, String port) {
-        return getConnectionHost(host) + ":" + getConnectionPort(port);
+        DBObject orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
 
-    }
-
-    private static ServerAddress getConnectionAddress(String host, String port)
-        throws CustomWrapperException {
-
-        try {
-
-            return new ServerAddress(getConnectionHost(host), getConnectionPort(port));
-
-        } catch (UnknownHostException e) {
-            String errorMsg = "MongoDB connection error: unknown host '" + host + "'";
-            logger.error(errorMsg, e);
-            throw new CustomWrapperException(errorMsg, e);
-        }
-    }
-
-    /*
-     * MongoClient constructor does not actually connect to the server: a connection
-     * is obtained from the pool only when a request (ie. an operation as find, insert, ...)
-     * is sent to the database. So getDatabaseNames() is invoked to test for database connectivity.
-     */
-    private static void testConnection(MongoClient mongoClient) throws CustomWrapperException {
-
-        try {
-            mongoClient.getDatabaseNames();
-        } catch (MongoException.Network e) {
-            logger.error("MongoDB connection error: unable to establish connection ", e);
-            throw new CustomWrapperException("MongoDB connection error: unable to establish connection");
-        }
-    }
-
-    private static boolean authenticate(DB db, String user, String password) {
-
-        boolean authenticated = true;
-        if (StringUtils.isNotEmpty(user) && StringUtils.isNotEmpty(password)) {
-            char[] pssw = password.toCharArray();
-            authenticated = db.authenticate(user, pssw);
-        }
-        return authenticated;
-    }
-
-    private DBCursor query(DBCollection collection, final CustomWrapperConditionHolder conditionHolder) {
-
-        CustomWrapperCondition condition = conditionHolder.getComplexCondition();
-        DBCursor cursor = null;
-        if (condition != null) {
-            DBObject query = QueryUtils.buildQuery(condition);
-            logger.debug("VDP query is:'" + condition + "' resulting in MongoDB query:'" + query + "'");
-
-            cursor = collection.find(query);
-        } else {
-            cursor = collection.find();
-        }
-
-        cursor = sort(cursor);
-
-        return cursor;
+        return client.query(query, orderBy);
     }
 
 
-    private DBCursor sort(DBCursor cursor) {
-
-        DBCursor sortedCursor = cursor;
-        Collection<CustomWrapperOrderByExpression> sortFields = getOrderByExpressions();
-        if (!sortFields.isEmpty()) {
-
-            Map<String, Integer> sortCriteria = new LinkedHashMap<String, Integer>();
-            for (CustomWrapperOrderByExpression sortField : sortFields) {
-                String field = sortField.getField().getName();
-                Integer order = mongoOrders.get(sortField.getOrder());
-                sortCriteria.put(field, order);
-            }
-            BasicDBObject orderBy = new BasicDBObject(sortCriteria);
-            sortedCursor.sort(orderBy);
-        }
-
-        return sortedCursor;
-
-    }
-
-    /*
-     * Get a (potentially recursive) field
-     */
-    private static Object getField(DBObject document, String name) {
-
-        final String[] tokens = name.split("\\.");
-
-        Object field = null;
-        if (tokens.length > 0) {
-            field = document.get(tokens[0]);
-            for (int i = 1; i < tokens.length; i++) {
-                if (field != null) {
-                    field = ((BSONObject) field).get(tokens[i]);
-                }
-            }
-        }
-
-        return field;
-    }
 }
