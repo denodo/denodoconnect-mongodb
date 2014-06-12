@@ -22,10 +22,12 @@
 package com.denodo.connect.mongodb.wrapper.util;
 
 import java.sql.Types;
+import java.util.Map;
 
 import org.bson.types.BasicBSONList;
 
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
+import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
@@ -57,6 +59,23 @@ public final class DocumentUtils {
         return field;
     }
 
+    public static BasicDBObject buildMongoDBObject(Map<CustomWrapperFieldExpression, Object> insertValues, 
+            CustomWrapperSchemaParameter[] schema) throws RuntimeException {
+        BasicDBObject doc = new BasicDBObject();
+        for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
+            CustomWrapperSchemaParameter schemaParam = DocumentUtils.getSchemaParameter(schema, 
+                    field.getStringRepresentation());
+            String sourceFieldname = schemaParam.getName();
+            if (field.hasSubFields()) {
+                throw new RuntimeException("Insert on complex fields is not suported");
+            }
+            doc.append(sourceFieldname, insertValues.get(field));
+        }
+        
+        return doc;
+    }
+    
+    
     private static CustomWrapperSchemaParameter getSchemaParameter(CustomWrapperSchemaParameter[] schema, String field) {
 
         CustomWrapperSchemaParameter parameter = null;

@@ -21,6 +21,8 @@
  */
 package com.denodo.connect.mongodb.wrapper.schema;
 
+import java.sql.Types;
+
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 
 
@@ -82,7 +84,12 @@ public abstract class Type  {
 
         int sqlType = getSQLType();
         CustomWrapperSchemaParameter[] subSchema = getSubSchema();
-
+        
+        if (sqlType != Types.ARRAY && sqlType!= Types.STRUCT) {
+            return new CustomWrapperSchemaParameter(getName(), sqlType,
+                    subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+        } 
         return new CustomWrapperSchemaParameter(getName(), sqlType,
             subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
             !updateable, nullable, !mandatory);

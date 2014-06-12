@@ -53,8 +53,10 @@ public class SchemaBuilder {
 
         for (String key : document.keySet()) {
             Object field = document.get(key);
-            Type fieldType = getFieldType(key, field);
-            this.type.add(fieldType);
+            if (field != null) {
+                Type fieldType = getFieldType(key, field);
+                this.type.add(fieldType);
+            }
         }
     }
 
