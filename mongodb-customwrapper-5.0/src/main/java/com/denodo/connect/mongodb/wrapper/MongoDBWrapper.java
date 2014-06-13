@@ -105,20 +105,20 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         return new CustomWrapperInputParameter[] {
                 new CustomWrapperInputParameter(HOST, "Name of the computer or IP address where MongoDB is running ",
                         false, CustomWrapperInputParameterTypeFactory.stringType()),
-                        new CustomWrapperInputParameter(PORT, "Port number to connect to MongoDB, default is 27017 ",
-                                false, CustomWrapperInputParameterTypeFactory.integerType()),
-                                new CustomWrapperInputParameter(USER, "Username to connect to MongoDB, if authentication enabled ",
-                                        false, CustomWrapperInputParameterTypeFactory.stringType()),
-                                        new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
-                                                false, CustomWrapperInputParameterTypeFactory.passwordType()),
-                                                new CustomWrapperInputParameter(DATABASE, "Database name ",
-                                                        true, CustomWrapperInputParameterTypeFactory.stringType()),
-                                                        new CustomWrapperInputParameter(COLLECTION, "Collection name ",
-                                                                true, CustomWrapperInputParameterTypeFactory.stringType()),
-                                                                new CustomWrapperInputParameter(FIELDS, "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
-                                                                        false, CustomWrapperInputParameterTypeFactory.stringType()),
-                                                                        new CustomWrapperInputParameter(INTROSPECTION_QUERY, "Documents retrieved by this query will be analyzed to reveal their fields and build the view schema. An empty query selects all documents in the collection ",
-                                                                                false, CustomWrapperInputParameterTypeFactory.stringType())
+                new CustomWrapperInputParameter(PORT, "Port number to connect to MongoDB, default is 27017 ",
+                        false, CustomWrapperInputParameterTypeFactory.integerType()),
+                new CustomWrapperInputParameter(USER, "Username to connect to MongoDB, if authentication enabled ",
+                        false, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
+                        false, CustomWrapperInputParameterTypeFactory.passwordType()),
+                new CustomWrapperInputParameter(DATABASE, "Database name ",
+                        true, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(COLLECTION, "Collection name ",
+                        true, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(FIELDS, "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
+                        false, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(INTROSPECTION_QUERY, "Documents retrieved by this query will be analyzed to reveal their fields and build the view schema. An empty query selects all documents in the collection ",
+                        false, CustomWrapperInputParameterTypeFactory.stringType())
         };
     }
 
@@ -134,7 +134,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 OPERATOR_EQ, OPERATOR_NE, OPERATOR_LT, OPERATOR_LE,
                 OPERATOR_GT, OPERATOR_GE, OPERATOR_LIKE, OPERATOR_ISNULL,
                 OPERATOR_ISNOTNULL
-                
         });
 
         return configuration;
