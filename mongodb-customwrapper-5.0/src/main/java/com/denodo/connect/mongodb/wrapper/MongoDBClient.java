@@ -75,6 +75,10 @@ public class MongoDBClient {
             throw new IOException("Unknown collection: '" + collectionName + "'");
         }
     }
+    
+    public DBCollection getCollection() {
+        return this.collection;
+    }
 
     public DBCursor query(DBObject query, DBObject orderBy) {
 

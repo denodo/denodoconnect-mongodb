@@ -21,8 +21,8 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
+import java.sql.Date;
 import java.sql.Types;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 

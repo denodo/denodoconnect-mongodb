@@ -24,6 +24,8 @@ package com.denodo.connect.mongodb.wrapper.util;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
@@ -47,6 +49,7 @@ import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperOrCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperSimpleCondition;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpression;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
@@ -55,6 +58,8 @@ import com.mongodb.QueryBuilder;
 public final class QueryUtils {
 
     private static final String MONGODB_ID_FIELD = "_id";
+
+
 
     private static final Map<String, String> MONGODB_OPERATORS = getOperatorMappings();
     private static final Map<ORDER, Integer> MONGODB_ORDERS = getOrderMappings();
@@ -84,6 +89,8 @@ public final class QueryUtils {
         map.put(OPERATOR_GT, "$gt");
         map.put(OPERATOR_GE, "$gte");
         map.put(OPERATOR_LIKE, "$regex");
+        map.put(OPERATOR_ISNULL, "$exists");
+        map.put(OPERATOR_ISNOTNULL, "$exists");
 
         return map;
     }
@@ -126,9 +133,14 @@ public final class QueryUtils {
 
                 String field = buildLeftOperand((CustomWrapperFieldExpression) simpleCondition.getField());
                 String operator = simpleCondition.getOperator();
-                Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
+                if (OPERATOR_ISNULL.equals(operator) || OPERATOR_ISNOTNULL.equals(operator)) {
+                    addNullCondition(query, field, operator);
+                } else {
+                    Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
+                    addCondition((BasicDBObject) query.get(), field, operator, value);
+                }
 
-                addCondition((BasicDBObject) query.get(), field, operator, value);
+
 
             }
         }
@@ -179,7 +191,7 @@ public final class QueryUtils {
         return sb.toString();
     }
 
-    private static BasicDBObject addCondition(BasicDBObject query, String field, String op, Object value) {
+    private static void addCondition(BasicDBObject query, String field, String op, Object value) {
 
         BasicDBObject result = query;
         String mongoDBop = MONGODB_OPERATORS.get(op);
@@ -193,7 +205,33 @@ public final class QueryUtils {
             // e.g. find all where i > 50 -> new BasicDBObject("i", new BasicDBObject("$gt", 50));
             result.append(field, new BasicDBObject(mongoDBop, finalValue));
         }
-        return result;
+    }
+
+    /*
+     *  Alternative implementation for IS NULL and IS NOT NULL
+     *  Since in MongoDB these can mean two things:
+     *    - The field does not exist
+     *    - The field is set to null explicitely
+     *  the implementetion is an OR of both
+     */
+    private static void addNullCondition(QueryBuilder query, String field, String op) {
+        String mongoDBop = MONGODB_OPERATORS.get(op);
+        // IS NULL
+        if (OPERATOR_ISNULL.equals(op)) {
+            // Implementation with exists
+            BasicDBObject  existsFilter = new BasicDBObject();
+            Boolean value = Boolean.FALSE;
+            existsFilter.append(field, new BasicDBObject(mongoDBop, value));
+            
+            // Implementation with value = null
+            BasicDBObject  nullFilter = new BasicDBObject();
+            nullFilter.append(field, null);
+            
+            query.or(existsFilter, nullFilter);
+        } else { // IS NOT NULL
+            Boolean value = Boolean.TRUE;
+            ((BasicDBObject) query.get()).append(field, new BasicDBObject(mongoDBop, value));
+        }
     }
 
     private static Object transform(String field, String op, Object value) {
