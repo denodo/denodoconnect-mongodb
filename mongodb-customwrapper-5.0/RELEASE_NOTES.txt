@@ -1,3 +1,7 @@
+20151015
+========
+Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri 
+
 20140718
 ========
 - Now this component uses the new way to update extensions in VDP. From now on, you don't

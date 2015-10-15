@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-
 import com.mongodb.CommandFailureException;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -39,7 +38,7 @@ import com.mongodb.ServerAddress;
 public final class MongoDBConnectionLocator {
 
     private static final Logger logger = Logger.getLogger(MongoDBConnectionLocator.class);
-
+    private static final String PREFIX="mongodb://";
     private static final ConcurrentMap<String, MongoClient> mongoCache =
         new ConcurrentHashMap<String, MongoClient>();
 
@@ -54,17 +53,19 @@ public final class MongoDBConnectionLocator {
      * and returns it if exists. Otherwise creates a new MongoClient instance.
      */
     public static MongoClient getConnection(String host, Integer port, String user, String password,
-        String db) throws IOException {
+        String db, String connectionString, String uri,  MongoClientURI mongoURI) throws IOException {
 
         try {
-
-            String uri = buildConnectionURI(host, port, user, password, db);
-            MongoClientURI mongoURI = new MongoClientURI(uri);
+        
             MongoClient client = mongoCache.get(uri);
             if (client == null) {
+                if(!StringUtils.isNotBlank(connectionString)){
                 logger.debug("MongoDB connection for host:" + host + " port:" + port + " user:" + user
                     + " db:" + db + " does not exist, creating it... ");
-
+                }else{
+                    logger.debug("MongoDB connection with connection string: "+connectionString+" user:" + user
+                    + " does not exist, creating it... ");
+                }
                 client = new MongoClient(mongoURI);
                 MongoClient temp = mongoCache.putIfAbsent(uri, client);
                 if (temp != null) {
@@ -98,24 +99,44 @@ public final class MongoDBConnectionLocator {
      * to build the URI, to avoid using one MongoClient instance for each db of the MongoDB node.
      *
      */
-    private static String buildConnectionURI(String host, Integer port, String user,
-        String password, String db) {
+    public static String buildConnectionURI(String host, Integer port, String user,
+            String password, String db, String connectionString) {
 
-        StringBuilder uri = new StringBuilder("mongodb://");
-        boolean auth = false;
-        if (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(password)) {
-            uri.append(user).append(':').append(password).append('@');
-            auth = true;
-        }
-        uri.append((host != null) ? host : ServerAddress.defaultHost());
-        uri.append(':');
-        uri.append((port != null) ? port.intValue() : ServerAddress.defaultPort());
+        if(StringUtils.isNotBlank(connectionString)){
+            StringBuilder uri = new StringBuilder();
+            if(!connectionString.startsWith(PREFIX)){
+                uri.append(PREFIX);
+                if (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(password)) {
+                    uri.append(user).append(':').append(password).append('@');
+
+                }
+                uri.append(connectionString);
+            }else{
+                uri.append(connectionString);
+                if (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(password)) {
+                    uri.insert(10,user+":"+password+"@");
+                }
+            }
+            return uri.toString(); 
+        }else{
+            boolean auth = false;
+            StringBuilder uri = new StringBuilder(PREFIX);
+
+            if (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(password)) {
+                uri.append(user).append(':').append(password).append('@');
+                auth = true;
+            }
+            uri.append((host != null) ? host : ServerAddress.defaultHost());
+            uri.append(':');
+            uri.append((port != null) ? port.intValue() : ServerAddress.defaultPort());
 
         if (auth) {
             uri.append('/').append(db);
+            
         }
-
+        logger.debug("Connection uri: "+ uri.toString());
         return uri.toString();
+        }
     }
 
     /*

@@ -1,3 +1,7 @@
+20151015
+========
+Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri 
+
 20140926
 --------
 - Created first version of this component for Denodo 5.5

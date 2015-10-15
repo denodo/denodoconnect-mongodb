@@ -24,12 +24,15 @@ package com.denodo.connect.mongodb.wrapper;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.mongodb.CommandFailureException;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
 
@@ -41,12 +44,18 @@ public class MongoDBClient {
 
 
     public MongoDBClient(String host, Integer port, String user, String password,
-        String dbName, String collectionName) throws IOException {
-
-        MongoClient mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, dbName);
-
-        checkDB(mongoClient, dbName);
-        DB db = mongoClient.getDB(dbName);
+        String dbName, String collectionName, String connectionString) throws IOException {
+        String uri = MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
+        MongoClientURI mongoURI = new MongoClientURI(uri);
+        MongoClient mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, dbName, connectionString, uri, mongoURI);
+       
+        String databaseName=dbName;
+        if(StringUtils.isNotBlank(connectionString)){//Connection with connection string parameter
+            databaseName=mongoURI.getDatabase();
+        }
+        
+        checkDB(mongoClient, databaseName);
+        DB db = mongoClient.getDB(databaseName);
 
         checkCollection(db, collectionName);
         this.collection = db.getCollection(collectionName);

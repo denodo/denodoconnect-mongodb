@@ -72,6 +72,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String DATABASE = "Database";
     private static final String COLLECTION = "Collection";
     private static final String FIELDS = "Fields";
+    private static final String CONNECTION_STRING = "Connection String";
     private static final String INTROSPECTION_QUERY = "Introspection query";
 
     private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
@@ -113,9 +114,14 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
                         false, CustomWrapperInputParameterTypeFactory.passwordType()),
                 new CustomWrapperInputParameter(DATABASE, "Database name ",
-                        true, CustomWrapperInputParameterTypeFactory.stringType()),
+                        false, CustomWrapperInputParameterTypeFactory.stringType()),
                 new CustomWrapperInputParameter(COLLECTION, "Collection name ",
                         true, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(
+                                CONNECTION_STRING,
+                                "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/database[?options] \n"                                
+                                + "This parameter is an alternative to put database, host and port parameters  ",
+                                false, CustomWrapperInputParameterTypeFactory.stringType()),
                 new CustomWrapperInputParameter(
                         FIELDS,
                         "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
@@ -178,10 +184,25 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         final String user = inputValues.get(USER);
         final String password = inputValues.get(PASSWORD);
+        final String host = inputValues.get(HOST);
+        final String portAsString = inputValues.get(PORT);
+        final String dbName = inputValues.get(DATABASE);
+        final String connectionString = inputValues.get(CONNECTION_STRING);
 
         if (StringUtils.isNotBlank(user) && StringUtils.isBlank(password)) {
             throw new IllegalArgumentException(PASSWORD + " is missing.");
         }
+        if(StringUtils.isNotBlank(connectionString)){
+            if(StringUtils.isNotBlank(dbName)||StringUtils.isNotBlank(host)||StringUtils.isNotBlank(portAsString)){
+                final String errorMsg = "You cannot specify at the same time connection string parameter or database, host and port parameters";
+                logger.info(errorMsg);
+                throw new IllegalArgumentException(errorMsg);
+            }
+         }else if(!StringUtils.isNotBlank(dbName)){
+             final String errorMsg = "Connection string parameter ou Database paramater is mandatory ";
+             logger.info(errorMsg);
+             throw new IllegalArgumentException(errorMsg);
+         }
     }
 
     /*
@@ -390,8 +411,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String password = inputValues.get(PASSWORD);
         final String dbName = inputValues.get(DATABASE);
         final String collectionName = inputValues.get(COLLECTION);
-
-        return new MongoDBClient(host, port, user, password, dbName, collectionName);
+        final String connectionString = inputValues.get(CONNECTION_STRING);
+        
+        return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString);
     }
 
     private DBCursor query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {
