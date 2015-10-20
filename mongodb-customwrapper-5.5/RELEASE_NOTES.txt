@@ -1,6 +1,9 @@
-20151015
+20151020
 ========
-Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri 
+- Added "Connection String" as a parameter, in order to allow a larger range of connection
+  parameters when connecting to mongoDB.
+- Several improvements on documentation.
+
 
 20140926
 --------
