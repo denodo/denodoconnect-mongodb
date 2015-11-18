@@ -42,6 +42,9 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.bson.BsonArray;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
@@ -55,11 +58,10 @@ import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditionHolder;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.input.type.CustomWrapperInputParameterTypeFactory;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.WriteResult;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.result.DeleteResult;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
 
@@ -278,10 +280,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String jsonQuery = inputValues.get(INTROSPECTION_QUERY);
 
         final MongoDBClient client = connect(inputValues);
-        final DBCursor cursor = client.query(jsonQuery);
+        final FindIterable<Document> cursor = client.query(jsonQuery);
         final SchemaBuilder builder = new SchemaBuilder();
-        while (cursor.hasNext()) {
-            final DBObject document = cursor.next();
+        MongoCursor<Document> iterator=cursor.iterator();
+        while (iterator.hasNext()) {
+            final Document document = iterator.next();
             builder.addToSchema(document);
         }
 
@@ -303,12 +306,13 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         try {
 
             final MongoDBClient client = connect(inputValues);
-            final DBCursor cursor = query(client, condition);
+            final FindIterable<Document> cursor = query(client, condition);
 
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
             final List<Object> row = new ArrayList<Object>();
-            while (cursor.hasNext()) {
-                final DBObject document = cursor.next();
+            MongoCursor<Document> iterator=cursor.iterator();
+            while (iterator.hasNext()) {
+                final Document document = iterator.next();
                 for (final CustomWrapperFieldExpression field : projectedFields) {
                     final Object column = DocumentUtils.buildVDPColumn(document, field.getName(), schema);
                     row.add(column);
@@ -317,6 +321,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 result.addRow(row.toArray(), projectedFields);
                 row.clear();
             }
+            iterator.close();
 
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
@@ -329,15 +334,16 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public int insert(final Map<CustomWrapperFieldExpression, Object> insertValues,
             final Map<String, String> inputValues)
             throws CustomWrapperException {
+        
         try {
 
             final MongoDBClient client = connect(inputValues);
-            final DBCollection coll = client.getCollection();
+            final MongoCollection<Document> coll = client.getCollection();
 
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
-            final BasicDBObject doc = DocumentUtils.buildMongoDBObject(insertValues, schema);
-            coll.insert(doc);
+            final Document doc = DocumentUtils.buildMongoDocument(insertValues, schema);
+            coll.insertOne(doc);
             return 1;
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
@@ -350,26 +356,27 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public int update(final Map<CustomWrapperFieldExpression, Object> newValues,
             final CustomWrapperConditionHolder condition, final Map<String, String> inputValues)
             throws CustomWrapperException {
+        
         try {
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
             final MongoDBClient client = connect(inputValues);
-            final DBCollection coll = client.getCollection();
+            final MongoCollection<Document> coll = client.getCollection();
 
             // Search query
-            final DBObject searchQuery = QueryUtils.buildQuery(condition.getComplexCondition());
+            final Bson searchQuery = QueryUtils.buildQuery(condition.getComplexCondition());
 
             // New values
-            final BasicDBObject updateQuery = new BasicDBObject();
-            updateQuery.append("$set", DocumentUtils.buildMongoDBObject(newValues, schema));
+            final Document updateQuery = new Document();
+            updateQuery.append("$set", DocumentUtils.buildMongoDocument(newValues, schema));
 
             // Execute update
-            coll.updateMulti(searchQuery, updateQuery);
+            coll.updateMany(searchQuery, updateQuery);
 
-            /*
-             * MongoDB does not tell you how many records have been updated To get this number, we would have to run the
-             * search query first. That would be very slow. therefore, as a tradeoff, 1 is returned always
-             */
+//            /*
+//             * MongoDB does not tell you how many records have been updated To get this number, we would have to run the
+//             * search query first. That would be very slow. therefore, as a tradeoff, 1 is returned always
+//             */
             return 1;
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
@@ -385,21 +392,23 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
             final MongoDBClient client = connect(inputValues);
-            final DBCollection coll = client.getCollection();
+            final MongoCollection<Document> coll = client.getCollection();
 
             final Map<CustomWrapperFieldExpression, Object> conditionValues = condition.getConditionMap();
 
-            final BasicDBObject doc = DocumentUtils.buildMongoDBObject(conditionValues, schema);
+            final Document doc = DocumentUtils.buildMongoDocument(conditionValues, schema);
 
-            final WriteResult wr = coll.remove(doc);
+            final DeleteResult wr = coll.deleteMany(doc);
 
             // Return the number of documents affected
-            return wr.getN();
+            return (int) wr.getDeletedCount();
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
             throw new CustomWrapperException(errorMsg, e);
         }
+        
+       
     }
 
     private static MongoDBClient connect(final Map<String, String> inputValues) throws IOException {
@@ -416,14 +425,14 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString);
     }
 
-    private DBCursor query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {
+    private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {
 
-        final DBObject query = QueryUtils.buildQuery(condition.getComplexCondition());
+        final Bson query = QueryUtils.buildQuery(condition.getComplexCondition());
         logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + query
                 + "'");
         getCustomWrapperPlan().addPlanEntry("MongoDB query", query.toString());
 
-        final DBObject orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
+        final Bson orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
 
         return client.query(query, orderBy);
     }

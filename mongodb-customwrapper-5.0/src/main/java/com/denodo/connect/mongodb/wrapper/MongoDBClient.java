@@ -22,25 +22,26 @@
 package com.denodo.connect.mongodb.wrapper;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
-import com.mongodb.CommandFailureException;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.util.JSON;
+import com.mongodb.ReplicaSetStatus;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
 import com.mongodb.util.JSONParseException;
 
 
 public class MongoDBClient {
 
 
-    private DBCollection collection;
+    private MongoCollection<Document> collection;
 
 
     public MongoDBClient(String host, Integer port, String user, String password,
@@ -55,58 +56,87 @@ public class MongoDBClient {
         }
         
         checkDB(mongoClient, databaseName);
-        DB db = mongoClient.getDB(databaseName);
-
+        MongoDatabase db= mongoClient.getDatabase(databaseName);
+       
         checkCollection(db, collectionName);
         this.collection = db.getCollection(collectionName);
+        
     }
 
     private static void checkDB(MongoClient mongoClient, String dbName)
         throws IOException {
-
-        try {
-            List<String> dbs = mongoClient.getDatabaseNames();
-            if (!dbs.contains(dbName)) {
+       
+            MongoIterable<String> dbs = mongoClient.listDatabaseNames();
+            Boolean existDb= false;
+            
+            MongoCursor<String> iterator=dbs.iterator();
+            while (iterator.hasNext()) {
+                if(iterator.next().equals(dbName)){
+                   existDb= true; 
+                }
+            }
+            if(!existDb){
                 throw new IOException("Unknown database: '" + dbName + "'");
             }
-
-        } catch (CommandFailureException e) {
-            // when user credentials were provided and the user do not have enough privileges
-            // the workaround to check for the database will fail but this exception will not be throwed
-            if (!e.getMessage().contains("unauthorized")) {
-                throw e;
-            }
-        }
     }
 
-    private static void checkCollection(DB db, String collectionName) throws IOException {
-        if (!db.collectionExists(collectionName)) {
+    private static void checkCollection(final MongoDatabase db, final String collectionName) throws IOException {
+        if (db.getCollection(collectionName)==null) {
             throw new IOException("Unknown collection: '" + collectionName + "'");
         }
     }
     
-    public DBCollection getCollection() {
+    public MongoCollection<Document> getCollection() {
         return this.collection;
     }
 
-    public DBCursor query(DBObject query, DBObject orderBy) {
+    public  FindIterable<Document>  query(Bson query, Bson orderBy) {
 
+       
+        
         // An empty (or null) query document ({}) selects all documents in the collection.
-        DBCursor cursor = this.collection.find(query);
+        FindIterable<Document> cursor = this.collection.find(query);
         cursor.sort(orderBy);
 
         return cursor;
     }
 
-    public DBCursor query(String jsonQuery) {
+    public FindIterable<Document> query(String jsonQuery) {
 
         try {
-            // An empty (or null) query document ({}) selects all documents in the collection.
-            DBObject query = (DBObject) JSON.parse(jsonQuery);
+//             An empty (or null) query document ({}) selects all documents in the collection.
+            Document query= new Document();
+            if(jsonQuery!=null){
+                query= Document.parse(jsonQuery);
+            }
             return this.collection.find(query);
         } catch (JSONParseException e) {
             throw new IllegalArgumentException("Invalid query syntax", e);
         }
     }
+public static void main(String[] args) throws IOException {
+    MongoClientURI connectionString = new MongoClientURI("mongodb://siteRootAdmin:<password>@192.168.0.67:27017/products?replicaset=rs0&authSource=admin&slaveOk=true&readPreference=secondary");
+    MongoClient mongoClient = new MongoClient(connectionString);
+    MongoDBClient mcli= new MongoDBClient(null, null, "siteRootAdmin", "<password>", null, "address", "192.168.0.67:27017/products?replicaset=rs0&authSource=admin&slaveOk=true&readPreference=primary");
 
+    MongoDatabase database = mongoClient.getDatabase("products");
+    System.out.println(database.toString());
+    MongoIterable<String> strings=mongoClient.listDatabaseNames();
+    MongoCursor<String> iterator=strings.iterator();
+    while (iterator.hasNext()) {       
+    
+        System.out.println(iterator.next().toString());
+    }
+    checkCollection(database, "address");
+    MongoCollection<Document> collection = database.getCollection("address");
+    final FindIterable<Document> cursor = mcli.query(null);
+    MongoCursor<Document> iterator2=cursor.iterator();
+    ReplicaSetStatus replisetstatus = mongoClient.getReplicaSetStatus();
+    
+    while (iterator2.hasNext()) {
+        final Document document = iterator2.next();
+        System.out.println(document.toJson().toString());
+    }
+
+}
 }

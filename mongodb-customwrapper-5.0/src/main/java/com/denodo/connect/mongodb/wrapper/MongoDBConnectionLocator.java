@@ -28,11 +28,14 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import com.mongodb.CommandFailureException;
+
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoIterable;
 
 
 public final class MongoDBConnectionLocator {
@@ -147,11 +150,11 @@ public final class MongoDBConnectionLocator {
     private static void testConnection(String uri, MongoClient client) throws IOException {
 
         try {
-            client.getDatabaseNames();
-        } catch (MongoException.Network e) {
+            MongoIterable<String> strings=client.listDatabaseNames();
+        } catch ( MongoSocketException e) {
             clearConnection(uri, client);
             throw new IOException("Unable to establish connection", e);
-        } catch (CommandFailureException e) {
+        } catch (MongoCommandException e) {
             if (e.getMessage().contains("auth fails")) {
                 clearConnection(uri, client);
                 throw new IOException("Authentication error: wrong user/password", e);

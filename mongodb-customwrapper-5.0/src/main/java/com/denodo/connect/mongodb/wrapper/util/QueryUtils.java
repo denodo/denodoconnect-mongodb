@@ -38,6 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
@@ -49,10 +51,7 @@ import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperOrCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperSimpleCondition;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpression;
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
+import com.mongodb.client.model.Filters;
 
 
 public final class QueryUtils {
@@ -107,9 +106,8 @@ public final class QueryUtils {
         return map;
     }
 
-    public static DBObject buildQuery(CustomWrapperCondition vdpCondition) {
-
-        QueryBuilder query = new QueryBuilder();
+    public static Bson buildQuery(CustomWrapperCondition vdpCondition) {
+        Bson query =null;
 
         if (vdpCondition != null) {
 
@@ -117,15 +115,24 @@ public final class QueryUtils {
 
                 CustomWrapperAndCondition andCondition = (CustomWrapperAndCondition) vdpCondition;
                 for (CustomWrapperCondition condition : andCondition.getConditions()) {
-                    DBObject andQuery = buildQuery(condition);
-                    query.and(andQuery);
+                    Bson andQuery =  buildQuery(condition);
+                   
+                    if(query==null){
+                        query=Filters.and(andQuery);
+                    }else{
+                        query=Filters.and(query,andQuery);  
+                    }
                 }
 
             } else if (vdpCondition.isOrCondition()) {
                 CustomWrapperOrCondition orCondition = (CustomWrapperOrCondition) vdpCondition;
                 for (CustomWrapperCondition condition : orCondition.getConditions()) {
-                    DBObject orQuery = buildQuery(condition);
-                    query.or(orQuery);
+                    Bson orQuery =  buildQuery(condition);
+                    if(query==null){
+                        query=Filters.or(orQuery);
+                    }else{
+                        query=Filters.or(query,orQuery);  
+                    }
                 }
 
             } else {
@@ -133,33 +140,37 @@ public final class QueryUtils {
 
                 String field = buildLeftOperand((CustomWrapperFieldExpression) simpleCondition.getField());
                 String operator = simpleCondition.getOperator();
+                query=new Document();
                 if (OPERATOR_ISNULL.equals(operator) || OPERATOR_ISNOTNULL.equals(operator)) {
-                    addNullCondition(query, field, operator);
+                    addNullCondition((Document)query, field, operator);
                 } else {
                     Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
-                    addCondition((BasicDBObject) query.get(), field, operator, value);
+                    addCondition( (Document)query, field, operator, value);
                 }
 
 
 
             }
         }
-
-        return query.get();
+        if(query==null){
+            query = new Document();
+        }
+        return query;
     }
 
-    public static DBObject buildOrderBy(Collection<CustomWrapperOrderByExpression> sortFields) {
+   
+    public static Bson buildOrderBy(Collection<CustomWrapperOrderByExpression> sortFields) {
 
-        DBObject orderBy = null;
+        Bson orderBy = null;
         if (!sortFields.isEmpty()) {
-            Map<String, Integer> sortCriteria = new LinkedHashMap<String, Integer>();
+            Map<String, Object> sortCriteria = new LinkedHashMap<String, Object>();
             for (CustomWrapperOrderByExpression sortField : sortFields) {
                 String field = sortField.getField().getName();
                 Integer order = MONGODB_ORDERS.get(sortField.getOrder());
                 sortCriteria.put(field, order);
             }
 
-            orderBy = new BasicDBObject(sortCriteria);
+            orderBy = new Document(sortCriteria);
         }
 
         return orderBy;
@@ -191,19 +202,19 @@ public final class QueryUtils {
         return sb.toString();
     }
 
-    private static void addCondition(BasicDBObject query, String field, String op, Object value) {
+    private static void addCondition(Document query, String field, String op, Object value) {
 
-        BasicDBObject result = query;
+        Document result = query;
         String mongoDBop = MONGODB_OPERATORS.get(op);
 
         Object finalValue = transform(field, op, value);
         // operator equals is a special case, it does not have an equivalent operator in MongoDB:
         if (mongoDBop == null) {
-            //  e.g. find all where i = 71 -> BasicDBObject("i", 71)
+            //  e.g. find all where i = 71 -> Document("i", 71)
             result.append(field, finalValue);
         } else {
-            // e.g. find all where i > 50 -> new BasicDBObject("i", new BasicDBObject("$gt", 50));
-            result.append(field, new BasicDBObject(mongoDBop, finalValue));
+            // e.g. find all where i > 50 -> new Document("i", new Document("$gt", 50));
+            result.append(field, new Document(mongoDBop, finalValue));
         }
     }
 
@@ -214,23 +225,23 @@ public final class QueryUtils {
      *    - The field is set to null explicitely
      *  the implementetion is an OR of both
      */
-    private static void addNullCondition(QueryBuilder query, String field, String op) {
+    private static void addNullCondition(Document query, String field, String op) {
         String mongoDBop = MONGODB_OPERATORS.get(op);
         // IS NULL
         if (OPERATOR_ISNULL.equals(op)) {
             // Implementation with exists
-            BasicDBObject  existsFilter = new BasicDBObject();
+            Document  existsFilter = new Document();
             Boolean value = Boolean.FALSE;
-            existsFilter.append(field, new BasicDBObject(mongoDBop, value));
+            existsFilter.append(field, new Document(mongoDBop, value));
             
             // Implementation with value = null
-            BasicDBObject  nullFilter = new BasicDBObject();
+            Document  nullFilter = new Document();
             nullFilter.append(field, null);
             
-            query.or(existsFilter, nullFilter);
+            query = (Document) Filters.or(existsFilter, nullFilter);
         } else { // IS NOT NULL
             Boolean value = Boolean.TRUE;
-            ((BasicDBObject) query.get()).append(field, new BasicDBObject(mongoDBop, value));
+             query.append(field, new Document(mongoDBop, value));
         }
     }
 
