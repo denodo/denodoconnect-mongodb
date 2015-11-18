@@ -97,27 +97,36 @@ public final class DocumentUtils {
         if (schemaParam != null) {
             if (schemaParam.getType() == Types.ARRAY ) {
                 ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
+                if(mongoDBArray!=null){
+                    Object[][] vdpArray = new Object[mongoDBArray.size()][1];
+                    int i = 0;
+                    for (Object element : mongoDBArray) {
+                        CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
+                        vdpArray[i++][0] = doBuildVDPColumn(element, elementSchema[0]);
+                    }
 
-                Object[][] vdpArray = new Object[mongoDBArray.size()][1];
-                int i = 0;
-                for (Object element : mongoDBArray) {
-                    CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
-                    vdpArray[i++][0] = doBuildVDPColumn(element, elementSchema[0]);
+                    return vdpArray;}
+                else{
+                    return null;
                 }
-
-                return vdpArray;
 
             } else if (schemaParam.getType() == Types.STRUCT) {
-               Document mongoDBRecord =  (Document) value;
+                Document mongoDBRecord =  (Document) value;
 
-                Object[] vdpRecord = new Object[schemaParam.getColumns().length];
-                int i = 0;
-                for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
-                    Object fieldValue = mongoDBRecord.get(param.getName());
-                    vdpRecord[i++] = doBuildVDPColumn(fieldValue, param);
+
+                if(mongoDBRecord!=null){
+                    Object[] vdpRecord = new Object[schemaParam.getColumns().length];
+                    int i = 0;
+                    for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
+                        Object fieldValue = mongoDBRecord.get(param.getName());
+                        vdpRecord[i++] = doBuildVDPColumn(fieldValue, param);
+                    }
+
+
+                    return vdpRecord;
+                }else{
+                    return null;
                 }
-
-                return vdpRecord;
             }
         }
 

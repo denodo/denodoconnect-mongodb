@@ -29,7 +29,6 @@ import org.bson.conversions.Bson;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.ReplicaSetStatus;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -114,29 +113,5 @@ public class MongoDBClient {
             throw new IllegalArgumentException("Invalid query syntax", e);
         }
     }
-public static void main(String[] args) throws IOException {
-    MongoClientURI connectionString = new MongoClientURI("mongodb://siteRootAdmin:<password>@192.168.0.67:27017/products?replicaset=rs0&authSource=admin&slaveOk=true&readPreference=secondary");
-    MongoClient mongoClient = new MongoClient(connectionString);
-    MongoDBClient mcli= new MongoDBClient(null, null, "siteRootAdmin", "<password>", null, "address", "192.168.0.67:27017/products?replicaset=rs0&authSource=admin&slaveOk=true&readPreference=primary");
 
-    MongoDatabase database = mongoClient.getDatabase("products");
-    System.out.println(database.toString());
-    MongoIterable<String> strings=mongoClient.listDatabaseNames();
-    MongoCursor<String> iterator=strings.iterator();
-    while (iterator.hasNext()) {       
-    
-        System.out.println(iterator.next().toString());
-    }
-    checkCollection(database, "address");
-    MongoCollection<Document> collection = database.getCollection("address");
-    final FindIterable<Document> cursor = mcli.query(null);
-    MongoCursor<Document> iterator2=cursor.iterator();
-    ReplicaSetStatus replisetstatus = mongoClient.getReplicaSetStatus();
-    
-    while (iterator2.hasNext()) {
-        final Document document = iterator2.next();
-        System.out.println(document.toJson().toString());
-    }
-
-}
 }
