@@ -1,6 +1,6 @@
 20151119
 ========
-Uptaded mongo-java-driver to 3.1.1
+Updated mongo-java-driver to 3.1.1
 
 20151015
 ========
