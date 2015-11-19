@@ -22,14 +22,13 @@
 package com.denodo.connect.mongodb.wrapper.util;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Map;
 
-import org.bson.types.BasicBSONList;
+import org.bson.Document;
 
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 
 
 public final class DocumentUtils {
@@ -38,7 +37,7 @@ public final class DocumentUtils {
     private DocumentUtils() {
     }
 
-    public static Object buildVDPColumn(DBObject document, String fullName, CustomWrapperSchemaParameter[] schema) {
+    public static Object buildVDPColumn(Document document, String fullName, CustomWrapperSchemaParameter[] schema) {
 
         String[] tokens = fullName.split("\\.");
 
@@ -47,7 +46,7 @@ public final class DocumentUtils {
         CustomWrapperSchemaParameter schemaParam = null;
         for (int i = 0; i < tokens.length && field != null; i++) {
             String name = tokens[i];
-            field = ((DBObject) field).get(name);
+            field =  ((Document)field).get(name);
             schemaParam = getSchemaParameter(currentSchema, name);
             if (schemaParam != null) {
                 currentSchema = schemaParam.getColumns();
@@ -59,9 +58,9 @@ public final class DocumentUtils {
         return field;
     }
 
-    public static BasicDBObject buildMongoDBObject(Map<CustomWrapperFieldExpression, Object> insertValues, 
+    public static Document buildMongoDocument(Map<CustomWrapperFieldExpression, Object> insertValues, 
             CustomWrapperSchemaParameter[] schema) throws RuntimeException {
-        BasicDBObject doc = new BasicDBObject();
+        Document doc = new Document();
         for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
             CustomWrapperSchemaParameter schemaParam = DocumentUtils.getSchemaParameter(schema, 
                     field.getStringRepresentation());
@@ -96,29 +95,38 @@ public final class DocumentUtils {
     private static Object doBuildVDPColumn(Object value, CustomWrapperSchemaParameter schemaParam) {
 
         if (schemaParam != null) {
-            if (schemaParam.getType() == Types.ARRAY && value instanceof BasicBSONList) {
-                BasicBSONList mongoDBArray = (BasicBSONList) value;
+            if (schemaParam.getType() == Types.ARRAY ) {
+                ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
+                if(mongoDBArray!=null){
+                    Object[][] vdpArray = new Object[mongoDBArray.size()][1];
+                    int i = 0;
+                    for (Object element : mongoDBArray) {
+                        CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
+                        vdpArray[i++][0] = doBuildVDPColumn(element, elementSchema[0]);
+                    }
 
-                Object[][] vdpArray = new Object[mongoDBArray.size()][1];
-                int i = 0;
-                for (Object element : mongoDBArray) {
-                    CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
-                    vdpArray[i++][0] = doBuildVDPColumn(element, elementSchema[0]);
+                    return vdpArray;}
+                else{
+                    return null;
                 }
 
-                return vdpArray;
+            } else if (schemaParam.getType() == Types.STRUCT) {
+                Document mongoDBRecord =  (Document) value;
 
-            } else if (schemaParam.getType() == Types.STRUCT && value instanceof BasicDBObject) {
-                BasicDBObject mongoDBRecord = (BasicDBObject) value;
 
-                Object[] vdpRecord = new Object[schemaParam.getColumns().length];
-                int i = 0;
-                for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
-                    Object fieldValue = mongoDBRecord.get(param.getName());
-                    vdpRecord[i++] = doBuildVDPColumn(fieldValue, param);
+                if(mongoDBRecord!=null){
+                    Object[] vdpRecord = new Object[schemaParam.getColumns().length];
+                    int i = 0;
+                    for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
+                        Object fieldValue = mongoDBRecord.get(param.getName());
+                        vdpRecord[i++] = doBuildVDPColumn(fieldValue, param);
+                    }
+
+
+                    return vdpRecord;
+                }else{
+                    return null;
                 }
-
-                return vdpRecord;
             }
         }
 

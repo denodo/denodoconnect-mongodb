@@ -25,11 +25,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import org.bson.types.BasicBSONList;
+import org.bson.Document;
 
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 
 
 public class SchemaBuilder {
@@ -49,7 +47,7 @@ public class SchemaBuilder {
         this.type = new DocumentType("Schema");
     }
 
-    public void addToSchema(DBObject document) {
+    public void addToSchema(Document document) {
 
         for (String key : document.keySet()) {
             Object field = document.get(key);
@@ -73,17 +71,17 @@ public class SchemaBuilder {
     private Type getFieldType(String key, Object field) {
 
         Type fieldType = null;
-        if (field instanceof BasicBSONList) {
-            BasicBSONList array = (BasicBSONList) field;
+        if(field instanceof ArrayList){
+            ArrayList<Object> array = (ArrayList<Object>) field;
             ArrayType arrayType = new ArrayType(key);
             for (Object item : array) {
-                arrayType.add(getFieldType(key + ARRAY_ITEM_SUFFIX, item));
+                arrayType.add(getFieldType(key+ARRAY_ITEM_SUFFIX,item));
             }
-
             fieldType = arrayType;
 
-        } else if (field instanceof BasicDBObject) {
-            BasicDBObject subDocument = (BasicDBObject) field;
+        } else if (field instanceof Document) {
+            
+            Document subDocument = (Document) field;
             DocumentType documentType = new DocumentType(key);
             for (Map.Entry<String, Object> entry : subDocument.entrySet()) {
                 documentType.add(getFieldType(entry.getKey(), entry.getValue()));
@@ -91,6 +89,7 @@ public class SchemaBuilder {
             fieldType = documentType;
         } else {
             fieldType = new SimpleType(key, field.getClass());
+
         }
 
         return fieldType;

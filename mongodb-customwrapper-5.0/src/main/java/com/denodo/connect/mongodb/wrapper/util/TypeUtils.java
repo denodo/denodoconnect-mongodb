@@ -23,16 +23,15 @@ package com.denodo.connect.mongodb.wrapper.util;
 
 import java.sql.Date;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.bson.types.BasicBSONList;
+import org.bson.Document;
 import org.bson.types.Binary;
 import org.bson.types.Code;
 import org.bson.types.ObjectId;
-
-import com.mongodb.BasicDBObject;
 
 
 public final class TypeUtils {
@@ -55,8 +54,8 @@ public final class TypeUtils {
         map.put(Double.class, Integer.valueOf(Types.DOUBLE));
         map.put(Float.class, Integer.valueOf(Types.FLOAT));
         map.put(Date.class, Integer.valueOf(Types.TIMESTAMP));
-        map.put(BasicBSONList.class, Integer.valueOf(Types.ARRAY));
-        map.put(BasicDBObject.class, Integer.valueOf(Types.STRUCT));
+        map.put(ArrayList.class, Integer.valueOf(Types.ARRAY));
+        map.put(Document.class, Integer.valueOf(Types.STRUCT));
         map.put(Binary.class, Integer.valueOf(Types.VARBINARY));
         map.put(ObjectId.class, Integer.valueOf(Types.VARCHAR));
         map.put(Code.class, Integer.valueOf(Types.VARCHAR));
