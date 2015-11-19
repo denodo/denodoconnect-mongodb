@@ -1,3 +1,7 @@
+20151119
+========
+Uptaded mongo-java-driver to 3.1.1
+
 20151015
 ========
 Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri 
