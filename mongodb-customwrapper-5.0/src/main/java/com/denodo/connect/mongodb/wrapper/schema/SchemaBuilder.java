@@ -39,6 +39,7 @@ public class SchemaBuilder {
      * VDP will query for 'memos.memos_ITEM.by' and MongoDB will query for 'memos.by'.
      */
     public static final String ARRAY_ITEM_SUFFIX = "_ITEM";
+    private static final Class<String> DEFAULT_CLASS = String.class;
 
     private DocumentType type;
 
@@ -53,7 +54,9 @@ public class SchemaBuilder {
             Object field = document.get(key);
             if (field != null) {
                 Type fieldType = getFieldType(key, field);
-                this.type.add(fieldType);
+                if(fieldType!= null){
+                    this.type.add(fieldType);
+                }
             }
         }
     }
@@ -73,23 +76,38 @@ public class SchemaBuilder {
         Type fieldType = null;
         if(field instanceof ArrayList){
             ArrayList<Object> array = (ArrayList<Object>) field;
-            ArrayType arrayType = new ArrayType(key);
-            for (Object item : array) {
-                arrayType.add(getFieldType(key+ARRAY_ITEM_SUFFIX,item));
+            if(!array.isEmpty()){
+                ArrayType arrayType = new ArrayType(key);
+                boolean isEmpty=true;
+                for (Object item : array) {
+                    Type subType =getFieldType(key+ARRAY_ITEM_SUFFIX,item);
+                    if(subType!=null){
+                        arrayType.add(subType);
+                        isEmpty=false;
+                    }
+                }
+                if (!isEmpty){//if the array is empty is not possible to represent in VDP 
+                    fieldType = arrayType;
+                }
             }
-            fieldType = arrayType;
 
         } else if (field instanceof Document) {
-            
+
             Document subDocument = (Document) field;
             DocumentType documentType = new DocumentType(key);
-            for (Map.Entry<String, Object> entry : subDocument.entrySet()) {
-                documentType.add(getFieldType(entry.getKey(), entry.getValue()));
+            if(!subDocument.isEmpty()){
+              //if the document is empty is not possible to represent in VDP 
+                for (Map.Entry<String, Object> entry : subDocument.entrySet()) {
+                    documentType.add(getFieldType(entry.getKey(), entry.getValue()));
+                }
+                fieldType = documentType;
             }
-            fieldType = documentType;
         } else {
-            fieldType = new SimpleType(key, field.getClass());
-
+            if(field!= null){
+                fieldType = new SimpleType(key, field.getClass());
+            }
+          
+            fieldType = new SimpleType(key, DEFAULT_CLASS);
         }
 
         return fieldType;
