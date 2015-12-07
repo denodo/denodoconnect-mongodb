@@ -1,4 +1,4 @@
-20151202
+20151207
 ========
 -Fixed nullPointerException when there is a array or struct with a element with value null;
 -Avoided the representation of Arrays and struts empty (without elements) in the schema of getSchemaParameters
