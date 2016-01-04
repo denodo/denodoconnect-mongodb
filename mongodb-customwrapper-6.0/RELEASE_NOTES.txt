@@ -1,0 +1,3 @@
+20160104
+========
+First version of mongodb-customwrapper-6.0
