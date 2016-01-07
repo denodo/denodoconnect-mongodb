@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-6.0</artifactId>
-    <version>20160105</version>
+    <version>20160107</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-6.0</name>
 
@@ -223,6 +223,12 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>  
             <version>1.9.0</version> 
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.18.1-GA</version>
             <scope>test</scope>
         </dependency>                
     </dependencies>
