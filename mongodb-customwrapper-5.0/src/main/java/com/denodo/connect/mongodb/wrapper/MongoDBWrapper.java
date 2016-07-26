@@ -155,23 +155,22 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     @Override
     public CustomWrapperSchemaParameter[] getSchemaParameters(
             final Map<String, String> inputValues) throws CustomWrapperException {
-
         try {
             // Check input here so we can inform the user about errors at base view creation time.
             checkInput(inputValues);
 
-            CustomWrapperSchemaParameter[] schema = schemaCache.get(inputValues);
-            if (schema == null) {
+            CustomWrapperSchemaParameter[] schema;
+            final MongoDBClient client = connect(inputValues,true);
+            
+          
                 final String fields = inputValues.get(FIELDS);
                 if (StringUtils.isNotBlank(fields)) {
                     schema = getSchemaFromFields(inputValues);
                 } else {
-                    schema = getSchemaFromQuery(inputValues);
+                    schema = getSchemaFromQuery(inputValues,client);
                 }
 
                 schemaCache.put(inputValues, schema);
-            }
-
             return schema;
 
         } catch (final Exception e) {
@@ -179,6 +178,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             logger.error(errorMsg, e);
             throw new CustomWrapperException(errorMsg, e);
         }
+       
 
     }
 
@@ -205,6 +205,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
              logger.info(errorMsg);
              throw new IllegalArgumentException(errorMsg);
          }
+       
     }
 
     /*
@@ -275,11 +276,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
      * field will be the highest common denominator between all the fields with the same name.
      */
     private static CustomWrapperSchemaParameter[] getSchemaFromQuery(
-            final Map<String, String> inputValues) throws IOException {
+            final Map<String, String> inputValues,MongoDBClient client) throws Exception {
 
         final String jsonQuery = inputValues.get(INTROSPECTION_QUERY);
 
-        final MongoDBClient client = connect(inputValues);
+        
         final FindIterable<Document> cursor = client.query(jsonQuery);
         final SchemaBuilder builder = new SchemaBuilder();
         MongoCursor<Document> iterator=cursor.iterator();
@@ -305,10 +306,12 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         try {
 
-            final MongoDBClient client = connect(inputValues);
+            final MongoDBClient client = connect(inputValues,false);
             final FindIterable<Document> cursor = query(client, condition);
-
-            final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
+            CustomWrapperSchemaParameter[] schema = schemaCache.get(inputValues);
+            if (schema == null) {
+                schema = getSchemaParameters(inputValues);
+            }
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
             while (iterator.hasNext()) {
@@ -337,7 +340,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         
         try {
 
-            final MongoDBClient client = connect(inputValues);
+            final MongoDBClient client = connect(inputValues,false);
             final MongoCollection<Document> coll = client.getCollection();
 
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
@@ -360,7 +363,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         try {
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
-            final MongoDBClient client = connect(inputValues);
+            final MongoDBClient client = connect(inputValues,false);
             final MongoCollection<Document> coll = client.getCollection();
 
             // Search query
@@ -391,7 +394,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         try {
             final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
-            final MongoDBClient client = connect(inputValues);
+            final MongoDBClient client = connect(inputValues, false);
             final MongoCollection<Document> coll = client.getCollection();
 
             final Map<CustomWrapperFieldExpression, Object> conditionValues = condition.getConditionMap();
@@ -411,7 +414,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
        
     }
 
-    private static MongoDBClient connect(final Map<String, String> inputValues) throws IOException {
+    private static MongoDBClient connect(final Map<String, String> inputValues, Boolean test) throws Exception {
 
         final String host = inputValues.get(HOST);
         final String portAsString = inputValues.get(PORT);
@@ -422,7 +425,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String collectionName = inputValues.get(COLLECTION);
         final String connectionString = inputValues.get(CONNECTION_STRING);
         
-        return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString);
+        return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, test);
     }
 
     private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {

@@ -35,7 +35,7 @@ import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
-import com.mongodb.client.MongoIterable;
+import com.mongodb.client.MongoDatabase;
 
 
 public final class MongoDBConnectionLocator {
@@ -54,9 +54,10 @@ public final class MongoDBConnectionLocator {
     /**
      * Attempts to find an existing MongoClient instance matching that URI
      * and returns it if exists. Otherwise creates a new MongoClient instance.
+     * @throws Exception 
      */
     public static MongoClient getConnection(String host, Integer port, String user, String password,
-        String db, String connectionString, String uri,  MongoClientURI mongoURI) throws IOException {
+        String db, String connectionString, String uri,  MongoClientURI mongoURI, Boolean test) throws Exception {
 
         try {
         
@@ -79,8 +80,9 @@ public final class MongoDBConnectionLocator {
                     client = temp;
                 }
             }
-
-            testConnection(uri, client);
+            if(test){//check the connection
+                testConnection(uri, client,db);
+            }
 
             return client;
 
@@ -89,6 +91,7 @@ public final class MongoDBConnectionLocator {
         } catch (MongoException e) {
             throw new IOException("Connection error: " + e.getMessage(), e);
         }
+        
     }
 
     /**
@@ -147,11 +150,22 @@ public final class MongoDBConnectionLocator {
      * is obtained from the pool only when a request (ie. an operation as find, insert, ...)
      * is sent to the database. So getDatabaseNames() is invoked to test for database connectivity.
      */
-    private static void testConnection(String uri, MongoClient client) throws IOException {
+    public static void testConnection(String uri, MongoClient client, String dbName) throws Exception {
 
         try {
-            MongoIterable<String> strings=client.listDatabaseNames();
+
+            MongoDatabase database = client.getDatabase(dbName);
+         
+          if(database.listCollections()==null || database.listCollections().first()==null){
+              clearConnection(uri, client);
+              logger.debug("Error connecting to database: '" +dbName + "' ");
+              //  mongoClient.close();
+              throw new Exception("Error connecting to database: '" + dbName + "' " );  
+          }
+            
+            //MongoIterable<String> strings=client.listDatabaseNames();
         } catch ( MongoSocketException e) {
+            logger.debug("Unable to establish connection",e);
             clearConnection(uri, client);
             throw new IOException("Unable to establish connection", e);
         } catch (MongoCommandException e) {
@@ -165,7 +179,14 @@ public final class MongoDBConnectionLocator {
                 clearConnection(uri, client);
                 throw e;
             }
+        }catch (Exception e) {
+            clearConnection(uri, client);
+            logger.debug("Unable to establish connection",e);
+            throw new Exception("Unable to establish connection", e);
+            
+          
         }
+
     }
 
     private static void clearConnection(String uri, MongoClient client) {

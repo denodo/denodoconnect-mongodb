@@ -24,6 +24,8 @@ package com.denodo.connect.mongodb.wrapper;
 import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -42,45 +44,39 @@ public class MongoDBClient {
 
     private MongoCollection<Document> collection;
 
-
     public MongoDBClient(String host, Integer port, String user, String password,
-        String dbName, String collectionName, String connectionString) throws IOException {
+        String dbName, String collectionName, String connectionString, Boolean test) throws Exception {
         String uri = MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
         MongoClientURI mongoURI = new MongoClientURI(uri);
-        MongoClient mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, dbName, connectionString, uri, mongoURI);
-       
         String databaseName=dbName;
         if(StringUtils.isNotBlank(connectionString)){//Connection with connection string parameter
             databaseName=mongoURI.getDatabase();
         }
-        
-        checkDB(mongoClient, databaseName);
-        MongoDatabase db= mongoClient.getDatabase(databaseName);
-       
-        checkCollection(db, collectionName);
+        MongoClient mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, databaseName, connectionString, uri, mongoURI, test);
+
+
+        MongoDatabase db=mongoClient.getDatabase(databaseName);
+
+        if(test){
+            checkCollection(db, collectionName);
+        }
         this.collection = db.getCollection(collectionName);
         
     }
 
-    private static void checkDB(MongoClient mongoClient, String dbName)
-        throws IOException {
-       
-            MongoIterable<String> dbs = mongoClient.listDatabaseNames();
-            Boolean existDb= false;
-            
-            MongoCursor<String> iterator=dbs.iterator();
-            while (iterator.hasNext()) {
-                if(iterator.next().equals(dbName)){
-                   existDb= true; 
-                }
-            }
-            if(!existDb){
-                throw new IOException("Unknown database: '" + dbName + "'");
-            }
-    }
+
 
     private static void checkCollection(final MongoDatabase db, final String collectionName) throws IOException {
-        if (db.getCollection(collectionName)==null) {
+        
+        MongoIterable<String> collectionNames = db.listCollectionNames();
+        boolean existCollection= false;
+        for (final String name : collectionNames) {
+            if (name.equalsIgnoreCase(collectionName)) {
+                existCollection=true;
+                break;
+            }
+        }
+        if (!existCollection) {
             throw new IOException("Unknown collection: '" + collectionName + "'");
         }
     }
