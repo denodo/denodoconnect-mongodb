@@ -1,3 +1,6 @@
+20160726
+========
+Check connection without using listdatabases()
 20151207
 ========
 -Fixed nullPointerException when there is a array or struct with a element with value null;
