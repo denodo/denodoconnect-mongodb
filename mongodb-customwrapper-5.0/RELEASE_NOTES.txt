@@ -1,3 +1,6 @@
+20161108
+========
+Fix log query mongodb
 20160726
 ========
 Check connection without using listdatabases()

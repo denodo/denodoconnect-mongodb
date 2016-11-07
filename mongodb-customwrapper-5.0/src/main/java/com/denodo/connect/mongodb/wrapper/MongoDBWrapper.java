@@ -43,6 +43,7 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.bson.BsonArray;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -58,6 +59,7 @@ import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditionHolder;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.input.type.CustomWrapperInputParameterTypeFactory;
+import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -431,9 +433,10 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {
 
         final Bson query = QueryUtils.buildQuery(condition.getComplexCondition());
-        logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + query
+        BsonDocument doc = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
+        logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + doc
                 + "'");
-        getCustomWrapperPlan().addPlanEntry("MongoDB query", query.toString());
+        getCustomWrapperPlan().addPlanEntry("MongoDB query", doc.toString());
 
         final Bson orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
 

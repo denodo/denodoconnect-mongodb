@@ -24,8 +24,6 @@ package com.denodo.connect.mongodb.wrapper;
 import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -33,14 +31,14 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.util.JSONParseException;
 
 
 public class MongoDBClient {
-
+    
+    private MongoClient mongoClient;
 
     private MongoCollection<Document> collection;
 
@@ -52,10 +50,10 @@ public class MongoDBClient {
         if(StringUtils.isNotBlank(connectionString)){//Connection with connection string parameter
             databaseName=mongoURI.getDatabase();
         }
-        MongoClient mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, databaseName, connectionString, uri, mongoURI, test);
+        this.mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, databaseName, connectionString, uri, mongoURI, test);
 
 
-        MongoDatabase db=mongoClient.getDatabase(databaseName);
+        MongoDatabase db=getMongoClient().getDatabase(databaseName);
 
         if(test){
             checkCollection(db, collectionName);
@@ -108,6 +106,12 @@ public class MongoDBClient {
         } catch (JSONParseException e) {
             throw new IllegalArgumentException("Invalid query syntax", e);
         }
+    }
+
+
+
+    public MongoClient getMongoClient() {
+        return this.mongoClient;
     }
 
 }
