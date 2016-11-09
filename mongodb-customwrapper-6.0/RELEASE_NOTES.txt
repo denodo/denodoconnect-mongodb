@@ -1,12 +1,16 @@
+20161109
+========
+#29740 - Projections not being correctly delegated to MongoDB
+
 20161108
 ========
 #29727 - Add support to projection in mongodb
-#29699 Fix log query mongodb, adding projection and order by
+#29699 - Fix log query mongodb, adding projection and order by
 
 20160726
 ========
-Check connection without using listdatabases()
+- Check connection without using listdatabases()
 
 20160107
 ========
-First version of mongodb-customwrapper-6.0
+- First version of mongodb-customwrapper-6.0

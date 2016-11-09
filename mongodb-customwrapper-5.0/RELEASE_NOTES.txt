@@ -1,23 +1,28 @@
+20161109
+========
+#29740 - Projections not being correctly delegated to MongoDB
+
 20161108
 ========
 #29727 - Add support to projection in mongodb
-#29699 Fix log query mongodb, adding projection and order by
+#29699 - Fix log query mongodb, adding projection and order by
 
 20160726
 ========
-Check connection without using listdatabases()
+- Check connection without using listdatabases()
+
 20151207
 ========
--Fixed nullPointerException when there is a array or struct with a element with value null;
--Avoided the representation of Arrays and struts empty (without elements) in the schema of getSchemaParameters
+- Fixed nullPointerException when there is a array or struct with a element with value null;
+- Avoided the representation of Arrays and struts empty (without elements) in the schema of getSchemaParameters
  
 20151119
 ========
-Updated mongo-java-driver to 3.1.1
+- Updated mongo-java-driver to 3.1.1
 
 20151015
 ========
-Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri 
+- Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri
 
 20140718
 ========
