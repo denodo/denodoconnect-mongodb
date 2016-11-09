@@ -90,7 +90,7 @@ public class MongoDBClient {
         // An empty (or null) query document ({}) selects all documents in the collection.
         FindIterable<Document> cursor = this.collection.find(query);
         cursor.sort(orderBy);
-//        cursor.projection(projection);
+        cursor.projection(projection);
 
         return cursor;
     }
