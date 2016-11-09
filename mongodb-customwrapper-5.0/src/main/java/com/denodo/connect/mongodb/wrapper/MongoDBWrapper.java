@@ -438,26 +438,31 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition, List<CustomWrapperFieldExpression> projectedFields) {
 
         final Bson query = QueryUtils.buildQuery(condition.getComplexCondition());
-        if(query!=null){
-            BsonDocument doc = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());            
-            logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + doc
-                    + "'");
-            getCustomWrapperPlan().addPlanEntry("MongoDB condition query", doc.toString());
+        if(query != null){ // Note this should never be null (it is guaranteeed at QueryUtils.buildQuery(...)
+            final BsonDocument queryDocument = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
+            final String queryStringRep = (queryDocument != null? queryDocument.toString() : "(not representable)");
+            if (logger.isDebugEnabled()) {
+                logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + queryStringRep + "'");
+            }
+            getCustomWrapperPlan().addPlanEntry("MongoDB condition query", queryStringRep);
         }
 
-        Bson projection=buildProjection(projectedFields);
-        if(projection!=null){
-            BsonDocument projectionDocument= projection.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
-            logger.debug("The projected fields in MongoDB are: '" + projectionDocument.toString() + "'");
-            getCustomWrapperPlan().addPlanEntry("MongoDB projection query", projectionDocument.toString());
+        final Bson projection=buildProjection(projectedFields);
+        if(projection != null){
+            final BsonDocument projectionDocument = projection.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
+            final String projectionStringRep = (projectionDocument != null? projectionDocument.toString() : "(not representable)");
+            if (logger.isDebugEnabled()) {
+                logger.debug("The projected fields in MongoDB are: '" + projectionStringRep + "'");
+            }
+            getCustomWrapperPlan().addPlanEntry("MongoDB projection query", projectionStringRep);
         }
 
         final Bson orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
-        if(orderBy!=null){
-            BsonDocument orderByDocument = orderBy.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());            
-            logger.debug("The 'order by' in MongoDB is: '" +orderByDocument.toString()
-                    + "'");
-            getCustomWrapperPlan().addPlanEntry("MongoDB 'order by' query", orderByDocument.toString());
+        if(orderBy != null){
+            final BsonDocument orderByDocument = orderBy.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
+            final String orderByStringRep = (orderByDocument != null? orderByDocument.toString() : "(not representable)");
+            logger.debug("The 'order by' in MongoDB is: '" + orderByStringRep + "'");
+            getCustomWrapperPlan().addPlanEntry("MongoDB 'order by' query", orderByStringRep);
         }
 
 
@@ -465,12 +470,19 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     }
     
     public static Bson buildProjection(List<CustomWrapperFieldExpression> projectedFields){
-        List<String> projectedString= new ArrayList<String>();
+
+        if (projectedFields == null || projectedFields.isEmpty()) {
+            return null;
+        }
+
+        final List<String> projectedString= new ArrayList<String>();
 
         for (final CustomWrapperFieldExpression field : projectedFields) {
             projectedString.add(field.getName());
 
         }
         return Projections.include(projectedString);
+
     }
+
 }

@@ -161,19 +161,18 @@ public final class QueryUtils {
    
     public static Bson buildOrderBy(Collection<CustomWrapperOrderByExpression> sortFields) {
 
-        Bson orderBy = null;
-        if (!sortFields.isEmpty()) {
-            Map<String, Object> sortCriteria = new LinkedHashMap<String, Object>();
-            for (CustomWrapperOrderByExpression sortField : sortFields) {
-                String field = sortField.getField().getName();
-                Integer order = MONGODB_ORDERS.get(sortField.getOrder());
-                sortCriteria.put(field, order);
-            }
-
-            orderBy = new Document(sortCriteria);
+        if (sortFields == null || sortFields.isEmpty()) {
+            return null;
         }
 
-        return orderBy;
+        Map<String, Object> sortCriteria = new LinkedHashMap<String, Object>();
+        for (CustomWrapperOrderByExpression sortField : sortFields) {
+            String field = sortField.getField().getName();
+            Integer order = MONGODB_ORDERS.get(sortField.getOrder());
+            sortCriteria.put(field, order);
+        }
+
+        return new Document(sortCriteria);
 
     }
 

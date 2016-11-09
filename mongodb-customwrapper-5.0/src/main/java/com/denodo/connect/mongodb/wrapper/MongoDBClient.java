@@ -85,12 +85,14 @@ public class MongoDBClient {
 
     public  FindIterable<Document>  query(Bson query, Bson orderBy, Bson projection) {
 
-       
-        
         // An empty (or null) query document ({}) selects all documents in the collection.
         FindIterable<Document> cursor = this.collection.find(query);
-        cursor.sort(orderBy);
-        cursor.projection(projection);
+        if (orderBy != null) {
+            cursor.sort(orderBy);
+        }
+        if (projection != null) {
+            cursor.projection(projection);
+        }
 
         return cursor;
     }
