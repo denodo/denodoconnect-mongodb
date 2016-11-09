@@ -1,6 +1,8 @@
 20161108
 ========
-Fix log query mongodb
+#29727 - Add support to projection in mongodb
+#29699 Fix log query mongodb, adding projection and order by
+
 20160726
 ========
 Check connection without using listdatabases()

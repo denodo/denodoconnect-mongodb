@@ -63,6 +63,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
@@ -309,11 +310,13 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         try {
 
             final MongoDBClient client = connect(inputValues,false);
-            final FindIterable<Document> cursor = query(client, condition);
+            final FindIterable<Document> cursor = query(client, condition, projectedFields);
+         
             CustomWrapperSchemaParameter[] schema = schemaCache.get(inputValues);
             if (schema == null) {
                 schema = getSchemaParameters(inputValues);
             }
+            
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
             while (iterator.hasNext()) {
@@ -334,7 +337,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             throw new CustomWrapperException(errorMsg, e);
         }
     }
-
+    
+  
+    
     @Override
     public int insert(final Map<CustomWrapperFieldExpression, Object> insertValues,
             final Map<String, String> inputValues)
@@ -430,17 +435,42 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, test);
     }
 
-    private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition) {
+    private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition, List<CustomWrapperFieldExpression> projectedFields) {
 
         final Bson query = QueryUtils.buildQuery(condition.getComplexCondition());
-        BsonDocument doc = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
-        logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + doc
-                + "'");
-        getCustomWrapperPlan().addPlanEntry("MongoDB query", doc.toString());
+        if(query!=null){
+            BsonDocument doc = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());            
+            logger.debug("VDP query is: '" + condition.getComplexCondition() + "' resulting in MongoDB query: '" + doc
+                    + "'");
+            getCustomWrapperPlan().addPlanEntry("MongoDB condition query", doc.toString());
+        }
+
+        Bson projection=buildProjection(projectedFields);
+        if(projection!=null){
+            BsonDocument projectionDocument= projection.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
+            logger.debug("The projected fields in MongoDB are: '" + projectionDocument.toString() + "'");
+            getCustomWrapperPlan().addPlanEntry("MongoDB projection query", projectionDocument.toString());
+        }
 
         final Bson orderBy = QueryUtils.buildOrderBy(getOrderByExpressions());
+        if(orderBy!=null){
+            BsonDocument orderByDocument = orderBy.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());            
+            logger.debug("The 'order by' in MongoDB is: '" +orderByDocument.toString()
+                    + "'");
+            getCustomWrapperPlan().addPlanEntry("MongoDB 'order by' query", orderByDocument.toString());
+        }
 
-        return client.query(query, orderBy);
+
+        return client.query(query, orderBy, projection);
     }
+    
+    public static Bson buildProjection(List<CustomWrapperFieldExpression> projectedFields){
+        List<String> projectedString= new ArrayList<String>();
 
+        for (final CustomWrapperFieldExpression field : projectedFields) {
+            projectedString.add(field.getName());
+
+        }
+        return Projections.include(projectedString);
+    }
 }
