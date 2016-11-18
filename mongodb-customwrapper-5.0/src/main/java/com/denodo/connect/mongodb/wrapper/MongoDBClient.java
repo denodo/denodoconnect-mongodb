@@ -49,7 +49,11 @@ public class MongoDBClient {
         String databaseName=dbName;
         if(StringUtils.isNotBlank(connectionString)){//Connection with connection string parameter
             databaseName=mongoURI.getDatabase();
+            if(databaseName==null){
+                throw new IllegalArgumentException("Database is mandatory in the Connection String parameter: [mongodb://]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/database[?options]");
+            }
         }
+        
         this.mongoClient = MongoDBConnectionLocator.getConnection(host, port, user, password, databaseName, connectionString, uri, mongoURI, test);
 
 

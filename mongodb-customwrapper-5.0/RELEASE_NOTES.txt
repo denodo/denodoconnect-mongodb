@@ -1,3 +1,8 @@
+Current Version
+========
+#29962 - Document the capability to connect via SSL
+Captured error when there is not database in the connection string parameter
+
 20161109
 ========
 #29740 - Projections not being correctly delegated to MongoDB
