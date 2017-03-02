@@ -36,6 +36,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.bson.conversions.Bson;
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
 import com.denodo.connect.mongodb.wrapper.util.QueryUtils;
+import com.denodo.connect.mongodb.wrapper.util.SchemaFieldsParsingUtil;
 import com.denodo.vdb.engine.customwrapper.AbstractCustomWrapper;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperConfiguration;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperException;
@@ -223,26 +225,76 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final boolean nullable = true;
         final boolean mandatory = true;
 
-        final String trimmedFields = inputValues.get(FIELDS).replaceAll("\\s", "");
-        final String[] fields = trimmedFields.split(",");
-
-        final CustomWrapperSchemaParameter[] parameters = new CustomWrapperSchemaParameter[fields.length];
-        for (int index = 0; index < fields.length; index++) {
-            final String[] field = fields[index].split(":");
-            int type = Types.VARCHAR;
-            if (field.length == 2) {
-                type = getSQLType(field[1]);
-            }
-
-            parameters[index] = new CustomWrapperSchemaParameter(field[0], type,
-                    null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
-                    updateable, nullable, !mandatory);
-
-        }
-
+        String fields = inputValues.get(FIELDS);
+         
+        Map<String, Object> schemaFields = SchemaFieldsParsingUtil.parseSchemaFields(fields);
+   
+        final CustomWrapperSchemaParameter[] parameters = buildSchemaFields(schemaFields, searchable, updateable, nullable, mandatory);
+        
         return parameters;
 
     }
+
+    private static CustomWrapperSchemaParameter[] buildSchemaFields(Map<String, Object> schemaFields, boolean searchable, boolean updateable, boolean nullable, boolean mandatory){
+        CustomWrapperSchemaParameter[] customWrapperSchema = new CustomWrapperSchemaParameter[schemaFields.size()];
+        int  index = 0;  
+        for (String fieldName :schemaFields.keySet()){
+
+
+            Object field = schemaFields.get(fieldName);
+
+            customWrapperSchema[index]= buildSchemaParameter(field, fieldName, searchable, updateable, nullable, mandatory);
+            index++;
+        }
+        return customWrapperSchema;
+
+
+    }
+    
+    private static CustomWrapperSchemaParameter buildSchemaParameter(Object field ,String fieldName, boolean searchable, boolean updateable, boolean nullable, boolean mandatory){
+        if(field instanceof String){
+
+            return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) field),
+                    null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+
+        }else if(field instanceof Map<?,?>){
+            Map<String, Object> structSchema = (Map<String, Object>) field;
+            int subindex= 0;
+            CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[structSchema.size()];
+            for(String subfieldName : structSchema.keySet()){
+
+
+                subSchema[subindex] = buildSchemaParameter(structSchema.get(subfieldName), subfieldName, searchable, updateable, nullable, mandatory);
+
+            }
+            return  new CustomWrapperSchemaParameter(fieldName,Types.STRUCT,
+                    subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+        }else if( field instanceof Object[]){
+            Object[] structSchema = (Object[])field;
+
+
+            CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[1];
+            for (Object item : structSchema){
+                if(item instanceof Map<?,?>){
+                    subSchema[0]= buildSchemaParameter(item, fieldName+"_item"/*TODO*/, searchable, updateable, nullable, mandatory);
+                }else{
+                    subSchema[0]=     new CustomWrapperSchemaParameter(fieldName+"_item", getSQLType((String) item),
+                            subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                            updateable, nullable, !mandatory);
+
+                }
+            }
+
+            return  new CustomWrapperSchemaParameter(fieldName,Types.ARRAY,
+                    subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+
+        }
+        return null;//TODO
+    }
+
 
     private static int getSQLType(final String userType) {
 
@@ -250,15 +302,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String lowerCaseType = userType.toLowerCase();
         final Integer typeAsInteger = SQL_TYPES.get(lowerCaseType);
         if (typeAsInteger != null) {
-            type = typeAsInteger.intValue();
-            if ((type == Types.ARRAY) || (type == Types.STRUCT)) {
-                throw new IllegalArgumentException("You should use an " + INTROSPECTION_QUERY
-                        + " for configuring fields of type " + userType);
-            }
+            type = typeAsInteger.intValue();            
         } else {
             final Set<String> supportedTypes = new HashSet<String>(SQL_TYPES.keySet());
-            supportedTypes.remove("array");
-            supportedTypes.remove("struct");
             throw new IllegalArgumentException("Unsupported field type: '" + userType
                     + "'. Supported types are: " + supportedTypes);
         }
