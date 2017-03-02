@@ -20,33 +20,14 @@
  */
 package com.denodo.connect.mongodb.wrapper;
 
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
-
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.bson.BsonArray;
-import org.bson.BsonDocument;
-import org.bson.Document;
-import org.bson.conversions.Bson;
 
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
@@ -61,12 +42,26 @@ import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditionHolder;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.input.type.CustomWrapperInputParameterTypeFactory;
-import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
 
@@ -235,64 +230,68 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
     }
 
-    private static CustomWrapperSchemaParameter[] buildSchemaFields(Map<String, Object> schemaFields, boolean searchable, boolean updateable, boolean nullable, boolean mandatory){
+    private static CustomWrapperSchemaParameter[] buildSchemaFields(
+            Map<String, Object> schemaFields, boolean searchable, boolean updateable, boolean nullable, boolean mandatory) {
+
         CustomWrapperSchemaParameter[] customWrapperSchema = new CustomWrapperSchemaParameter[schemaFields.size()];
-        int  index = 0;  
-        for (String fieldName :schemaFields.keySet()){
-
-
-            Object field = schemaFields.get(fieldName);
-
-            customWrapperSchema[index]= buildSchemaParameter(field, fieldName, searchable, updateable, nullable, mandatory);
-            index++;
+        int index = 0;
+        for (String fieldName : schemaFields.keySet()){
+            customWrapperSchema[index++] =
+                    buildSchemaParameter(fieldName, schemaFields.get(fieldName), searchable, updateable, nullable, mandatory);
         }
         return customWrapperSchema;
 
-
     }
     
-    private static CustomWrapperSchemaParameter buildSchemaParameter(Object field ,String fieldName, boolean searchable, boolean updateable, boolean nullable, boolean mandatory){
-        if(field instanceof String){
+    private static CustomWrapperSchemaParameter buildSchemaParameter(
+            String fieldName, Object fieldValue, boolean searchable, boolean updateable, boolean nullable, boolean mandatory) {
 
-            return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) field),
+        if (fieldValue == null) {
+            // This should never happen unless parsing has a bug
+            throw new IllegalStateException("Schema field value is null, bad parsing of schema fields");
+        }
+
+        if (fieldValue instanceof String) {
+
+            return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) fieldValue),
                     null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
                     updateable, nullable, !mandatory);
 
-        }else if(field instanceof Map<?,?>){
-            Map<String, Object> structSchema = (Map<String, Object>) field;
+        } else if (fieldValue instanceof Map<?,?>) {
+
+            final Map<String, Object> structSchema = (Map<String, Object>) fieldValue;
+            final CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[structSchema.size()];
+
             int subindex= 0;
-            CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[structSchema.size()];
             for(String subfieldName : structSchema.keySet()){
-
-
-                subSchema[subindex] = buildSchemaParameter(structSchema.get(subfieldName), subfieldName, searchable, updateable, nullable, mandatory);
-
+                subSchema[subindex++] =
+                        buildSchemaParameter(subfieldName, structSchema.get(subfieldName), searchable, updateable, nullable, mandatory);
             }
-            return  new CustomWrapperSchemaParameter(fieldName,Types.STRUCT,
+
+            return new CustomWrapperSchemaParameter(fieldName,Types.STRUCT,
                     subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
                     updateable, nullable, !mandatory);
-        }else if( field instanceof Object[]){
-            Object[] structSchema = (Object[])field;
 
+        } else if (fieldValue instanceof Object[]) {
 
-            CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[1];
-            for (Object item : structSchema){
-                if(item instanceof Map<?,?>){
-                    subSchema[0]= buildSchemaParameter(item, fieldName+"_item"/*TODO*/, searchable, updateable, nullable, mandatory);
-                }else{
-                    subSchema[0]=     new CustomWrapperSchemaParameter(fieldName+"_item", getSQLType((String) item),
-                            subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
-                            updateable, nullable, !mandatory);
+            final Object[] arraySchema = (Object[]) fieldValue;
+            // Arrays have only one element, which should be the type of the items of this array
+            final Object arrayItemSchema = arraySchema[0];
 
-                }
-            }
+            // Arrays will have only one subschema, with name "[fieldName]_item"
+            final CustomWrapperSchemaParameter subSchemaItem =
+                    buildSchemaParameter(fieldName + "_item", arrayItemSchema, searchable, updateable, nullable, mandatory);
 
-            return  new CustomWrapperSchemaParameter(fieldName,Types.ARRAY,
+            final CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[] { subSchemaItem };
+
+            return new CustomWrapperSchemaParameter(fieldName,Types.ARRAY,
                     subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
                     updateable, nullable, !mandatory);
 
         }
-        return null;//TODO
+
+        throw new IllegalStateException("Bad type for schema field value: " + fieldValue.getClass().getName());
+
     }
 
 
