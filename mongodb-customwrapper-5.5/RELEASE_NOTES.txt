@@ -1,7 +1,8 @@
-Current Version
+20170303
 ========
-#29962 - Document the capability to connect via SSL
-Captured error when there is not database in the connection string parameter
+- Added #31468 - Improve mechanism for specifying the mongoDB schema in explicit form using the "Fields" input parameter 
+- Added #29962 - Document the capability to connect via SSL
+
 
 20161109
 ========

@@ -47,6 +47,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.bson.BsonDocument;
@@ -76,7 +77,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String FIELDS = "Fields";
     private static final String CONNECTION_STRING = "Connection String";
     private static final String INTROSPECTION_QUERY = "Introspection query";
-
+    private static final String ARRAY_ITEM_SUFFIX = "_ITEM";
     private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
 
     // schema cache, so we do not have to recalculate the schema for each execution of a custom wrapper view
@@ -127,11 +128,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 new CustomWrapperInputParameter(
                         FIELDS,
                         "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
-                        false, CustomWrapperInputParameterTypeFactory.stringType()),
+                        false, CustomWrapperInputParameterTypeFactory.longStringType()),
                 new CustomWrapperInputParameter(
                         INTROSPECTION_QUERY,
                         "Documents retrieved by this query will be analyzed to reveal their fields and build the view schema. An empty query selects all documents in the collection ",
-                        false, CustomWrapperInputParameterTypeFactory.stringType())
+                        false, CustomWrapperInputParameterTypeFactory.longStringType())
         };
     }
 
@@ -280,7 +281,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
             // Arrays will have only one subschema, with name "[fieldName]_item"
             final CustomWrapperSchemaParameter subSchemaItem =
-                    buildSchemaParameter(fieldName + "_item", arrayItemSchema, searchable, updateable, nullable, mandatory);
+                    buildSchemaParameter(fieldName + ARRAY_ITEM_SUFFIX, arrayItemSchema, searchable, updateable, nullable, mandatory);
 
             final CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[] { subSchemaItem };
 
