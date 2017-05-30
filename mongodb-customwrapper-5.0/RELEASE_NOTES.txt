@@ -1,0 +1,39 @@
+20170303
+========
+- Added #31468 - Improve mechanism for specifying the mongoDB schema in explicit form using the "Fields" input parameter 
+- Added #29962 - Document the capability to connect via SSL
+
+20161109
+========
+#29740 - Projections not being correctly delegated to MongoDB
+
+20161108
+========
+#29727 - Add support to projection in mongodb
+#29699 - Fix log query mongodb, adding projection and order by
+
+20160726
+========
+- Check connection without using listdatabases()
+
+20151207
+========
+- Fixed nullPointerException when there is a array or struct with a element with value null;
+- Avoided the representation of Arrays and struts empty (without elements) in the schema of getSchemaParameters
+ 
+20151119
+========
+- Updated mongo-java-driver to 3.1.1
+
+20151015
+========
+- Added parameter Connection String, in this way we allow to connect to mongodb with Connection string Uri
+
+20140718
+========
+- Now this component uses the new way to update extensions in VDP. From now on, you don't
+  have to delete the previous version of the extension when an update is needed.
+  This component will appear as "denodo-mongodb-customwrapper-5.0" in the Jar Extensions
+  Management dialog in the VDP Admin Tool.
+- Added write support (create, update, delete) - only for non-complex fields.
+- Added delegation of ISNULL and ISNOTNULL to mongodb data source.
