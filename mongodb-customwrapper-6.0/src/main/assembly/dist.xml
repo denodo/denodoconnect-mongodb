@@ -33,7 +33,7 @@
             </includes>
         </fileSet>
         <fileSet>
-          <directory>${basedir}/../mongodb-customwrapper-5.0/doc/</directory>
+          <directory>${basedir}/../mongodb-customwrapper-5.5/doc/</directory>
           <outputDirectory>/doc</outputDirectory>
           <includes>
             <include>**/*.pdf</include>
