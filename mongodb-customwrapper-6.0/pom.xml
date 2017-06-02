@@ -87,8 +87,8 @@
                       <Extension-Name>${project.artifactId}</Extension-Name>
                       <Extension-Description>${project.name}</Extension-Description>
                       <Extension-Version>${project.version}</Extension-Version>
-                       <Extension-Target-Version>6.0</Extension-Target-Version>
-                      <!--<Extension-Target-Update>20140826</Extension-Target-Update>-->
+                      <Extension-Target-Version>6.0</Extension-Target-Version>
+                      <Extension-Target-Update>20170515</Extension-Target-Update>
                       <Extension-Website>http://support.denodo.com</Extension-Website>
                     </manifestEntries>
                   </manifestSection>
