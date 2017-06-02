@@ -80,9 +80,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String ARRAY_ITEM_SUFFIX = "_ITEM";
     private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
 
-    // schema cache, so we do not have to recalculate the schema for each execution of a custom wrapper view
-    private static Map<Map<String, String>, CustomWrapperSchemaParameter[]> schemaCache = new HashMap<Map<String, String>, CustomWrapperSchemaParameter[]>();
-
     private static Map<String, Integer> getSQLTypes() {
 
         final Map<String, Integer> map = new HashMap<String, Integer>();
@@ -171,7 +168,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                     schema = getSchemaFromQuery(inputValues,client);
                 }
 
-                schemaCache.put(inputValues, schema);
             return schema;
 
         } catch (final Exception e) {
@@ -358,11 +354,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final MongoDBClient client = connect(inputValues,false);
             final FindIterable<Document> cursor = query(client, condition, projectedFields);
          
-            CustomWrapperSchemaParameter[] schema = schemaCache.get(inputValues);
-            if (schema == null) {
-                schema = getSchemaParameters(inputValues);
-            }
-            
+
+            CustomWrapperSchemaParameter[] schema = result.getSchema();
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
             while (iterator.hasNext()) {
@@ -396,9 +389,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final MongoDBClient client = connect(inputValues,false);
             final MongoCollection<Document> coll = client.getCollection();
 
-            final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
-            final Document doc = DocumentUtils.buildMongoDocument(insertValues, schema);
+            final Document doc = DocumentUtils.buildMongoDocument(insertValues);
             coll.insertOne(doc);
             return 1;
         } catch (final Exception e) {
@@ -414,7 +406,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             throws CustomWrapperException {
         
         try {
-            final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
             final MongoDBClient client = connect(inputValues,false);
             final MongoCollection<Document> coll = client.getCollection();
@@ -424,7 +415,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
             // New values
             final Document updateQuery = new Document();
-            updateQuery.append("$set", DocumentUtils.buildMongoDocument(newValues, schema));
+            updateQuery.append("$set", DocumentUtils.buildMongoDocument(newValues));
 
             // Execute update
             coll.updateMany(searchQuery, updateQuery);
@@ -445,14 +436,13 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public int delete(final CustomWrapperConditionHolder condition, final Map<String, String> inputValues)
             throws CustomWrapperException {
         try {
-            final CustomWrapperSchemaParameter[] schema = getSchemaParameters(inputValues);
 
             final MongoDBClient client = connect(inputValues, false);
             final MongoCollection<Document> coll = client.getCollection();
 
             final Map<CustomWrapperFieldExpression, Object> conditionValues = condition.getConditionMap();
 
-            final Document doc = DocumentUtils.buildMongoDocument(conditionValues, schema);
+            final Document doc = DocumentUtils.buildMongoDocument(conditionValues);
 
             final DeleteResult wr = coll.deleteMany(doc);
 

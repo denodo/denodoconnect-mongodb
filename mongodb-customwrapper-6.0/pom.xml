@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-6.0</artifactId>
-    <version>20170303</version>
+    <version>20170602</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-6.0</name>
 
@@ -162,7 +162,7 @@
         <dependency>
             <groupId>com.denodo.commons</groupId>
             <artifactId>denodo-commons-util</artifactId>
-            <version>6.0.0</version>
+            <version>6.0.6</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -174,7 +174,7 @@
         <dependency>
             <groupId>com.denodo.vdp</groupId>
             <artifactId>denodo-vdp-server</artifactId>
-            <version>6.0.0</version>
+            <version>6.0.6</version>
             <scope>provided</scope>
         </dependency>
         <!-- ***  -->

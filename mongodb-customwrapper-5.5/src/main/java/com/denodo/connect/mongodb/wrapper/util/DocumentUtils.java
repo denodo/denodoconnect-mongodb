@@ -58,19 +58,12 @@ public final class DocumentUtils {
         return field;
     }
 
-    public static Document buildMongoDocument(Map<CustomWrapperFieldExpression, Object> insertValues, 
-            CustomWrapperSchemaParameter[] schema) throws RuntimeException {
+    public static Document buildMongoDocument(Map<CustomWrapperFieldExpression, Object> insertValues) throws RuntimeException {
         Document doc = new Document();
         for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
-            CustomWrapperSchemaParameter schemaParam = DocumentUtils.getSchemaParameter(schema, 
-                    field.getStringRepresentation());
-            String sourceFieldname = schemaParam.getName();
-            if (field.hasSubFields()) {
-                throw new RuntimeException("Insert on complex fields is not suported");
-            }
-            doc.append(sourceFieldname, insertValues.get(field));
+            doc.append(field.getStringRepresentation(), insertValues.get(field));
         }
-        
+
         return doc;
     }
     

@@ -1,3 +1,7 @@
+20170602
+========
+- Added #31888 - Review use of caches and schema
+
 20170303
 ========
 - Added #31468 - Improve mechanism for specifying the mongoDB schema in explicit form using the "Fields" input parameter 
