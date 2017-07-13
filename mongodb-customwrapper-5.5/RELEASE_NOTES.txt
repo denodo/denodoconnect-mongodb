@@ -1,3 +1,7 @@
+20170713
+========
+- Fixed #33192 - Simple fields always being identified as type "String" when using the introspection query
+
 20170627
 ========
 - Added #31888 - Review use of caches and schema
@@ -6,7 +10,6 @@
 ========
 - Added #31468 - Improve mechanism for specifying the mongoDB schema in explicit form using the "Fields" input parameter 
 - Added #29962 - Document the capability to connect via SSL
-
 
 20161109
 ========

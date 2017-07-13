@@ -105,9 +105,9 @@ public class SchemaBuilder {
         } else {
             if(field!= null){
                 fieldType = new SimpleType(key, field.getClass());
+            } else {
+                fieldType = new SimpleType(key, DEFAULT_CLASS);
             }
-          
-            fieldType = new SimpleType(key, DEFAULT_CLASS);
         }
 
         return fieldType;
