@@ -221,7 +221,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         Map<String, Object> schemaFields = SchemaFieldsParsingUtil.parseSchemaFields(fields);
    
         final CustomWrapperSchemaParameter[] parameters = buildSchemaFields(schemaFields, searchable, updateable, nullable, mandatory);
-        
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Schema built for MongoDB source (using field specification) is: " + getSchemaRepresentation(parameters));
+        }
+
         return parameters;
 
     }
@@ -235,6 +239,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             customWrapperSchema[index++] =
                     buildSchemaParameter(fieldName, schemaFields.get(fieldName), searchable, updateable, nullable, mandatory);
         }
+
         return customWrapperSchema;
 
     }
@@ -334,6 +339,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         }
 
         final CustomWrapperSchemaParameter[] schema = builder.buildSchema();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Schema built for MongoDB source (using introspection query) is: " + getSchemaRepresentation(schema));
+        }
+
         if (schema.length == 0) {
             throw new IllegalArgumentException(INTROSPECTION_QUERY + " does not retrieve any document");
         }
@@ -355,7 +365,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
          
 
             CustomWrapperSchemaParameter[] schema = result.getSchema();
-            logSchema(schema);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Querying mongoDB source using the following schema: " + getSchemaRepresentation(schema));
+            }
 
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
@@ -523,35 +535,26 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     }
 
 
-    private static void logSchema(final CustomWrapperSchemaParameter[] schema) {
+    private static String getSchemaRepresentation(final CustomWrapperSchemaParameter[] schema) {
+        final StringBuilder strBuilder = new StringBuilder();
+        for (int i = 0 ; i < schema.length; i++) {
 
-        if (logger.isDebugEnabled()) {
-
-            final StringBuilder strBuilder = new StringBuilder();
-            strBuilder.append("Querying mongoDB source using the following schema: ");
-
-            for (int i = 0 ; i < schema.length; i++) {
-
-                if (i > 0) {
-                    strBuilder.append(", ");
-                }
-
-                final CustomWrapperSchemaParameter p = schema[i];
-                if (p == null) {
-                    strBuilder.append("NULL");
-                } else {
-                    strBuilder.append(p.getName());
-                    strBuilder.append(':');
-                    strBuilder.append(p.getType());
-                    strBuilder.append(':');
-                    strBuilder.append(p.getParameterClass().getName());
-                }
+            if (i > 0) {
+                strBuilder.append(", ");
             }
 
-            logger.debug(strBuilder);
-
+            final CustomWrapperSchemaParameter p = schema[i];
+            if (p == null) {
+                strBuilder.append("NULL");
+            } else {
+                strBuilder.append(p.getName());
+                strBuilder.append(':');
+                strBuilder.append(p.getType());
+                strBuilder.append(':');
+                strBuilder.append(p.getParameterClass().getName());
+            }
         }
-
+        return strBuilder.toString();
     }
 
 }
