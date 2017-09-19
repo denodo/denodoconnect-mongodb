@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.bson.types.Binary;
 import org.bson.types.Code;
@@ -60,6 +61,7 @@ public final class TypeUtils {
         map.put(ObjectId.class, Integer.valueOf(Types.VARCHAR));
         map.put(Code.class, Integer.valueOf(Types.VARCHAR));
         map.put(Object.class, Integer.valueOf(Types.JAVA_OBJECT));
+        map.put(BsonTimestamp.class, Integer.valueOf(Types.TIMESTAMP));
 
         return map;
     }
