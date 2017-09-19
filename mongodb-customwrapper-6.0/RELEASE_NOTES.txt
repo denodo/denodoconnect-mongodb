@@ -1,3 +1,8 @@
+20170919
+========
+- Fixed #33753 - Correctly deal with BsonTimestamp when creating schema from introspection query
+- Added #33752 - Improve logging of view schemas, both at construction and at query execution time
+
 20170713
 ========
 - Fixed #33192 - Simple fields always being identified as type "String" when using the introspection query
