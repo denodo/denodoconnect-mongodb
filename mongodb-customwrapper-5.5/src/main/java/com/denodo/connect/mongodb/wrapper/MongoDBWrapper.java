@@ -47,7 +47,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.bson.BsonDocument;
@@ -356,6 +355,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
          
 
             CustomWrapperSchemaParameter[] schema = result.getSchema();
+            logSchema(schema);
+
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
             while (iterator.hasNext()) {
@@ -518,6 +519,38 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         }
         return Projections.include(projectedString);
+
+    }
+
+
+    private static void logSchema(final CustomWrapperSchemaParameter[] schema) {
+
+        if (logger.isDebugEnabled()) {
+
+            final StringBuilder strBuilder = new StringBuilder();
+            strBuilder.append("Querying mongoDB source using the following schema: ");
+
+            for (int i = 0 ; i < schema.length; i++) {
+
+                if (i > 0) {
+                    strBuilder.append(", ");
+                }
+
+                final CustomWrapperSchemaParameter p = schema[i];
+                if (p == null) {
+                    strBuilder.append("NULL");
+                } else {
+                    strBuilder.append(p.getName());
+                    strBuilder.append(':');
+                    strBuilder.append(p.getType());
+                    strBuilder.append(':');
+                    strBuilder.append(p.getParameterClass().getName());
+                }
+            }
+
+            logger.debug(strBuilder);
+
+        }
 
     }
 
