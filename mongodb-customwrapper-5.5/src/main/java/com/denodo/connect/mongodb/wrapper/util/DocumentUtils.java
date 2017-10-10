@@ -25,13 +25,18 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
 
+import com.denodo.connect.mongodb.wrapper.MongoDBWrapper;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
+import org.apache.log4j.Logger;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 
 
 public final class DocumentUtils {
+
+    // We are getting the logger for the MongoDBWrapper on purpose, so that all logging is done from there
+    private static final Logger logger = Logger.getLogger(MongoDBWrapper.class);
 
 
     private DocumentUtils() {
@@ -87,6 +92,12 @@ public final class DocumentUtils {
 
     private static Object doBuildVDPColumn(Object value, CustomWrapperSchemaParameter schemaParam) {
 
+        if (logger.isTraceEnabled()) {
+            logger.trace(
+                    String.format("Building VDP column '%s' with type '%s' and value '%s'",
+                            schemaParam.getName(), schemaParam.getType(), (value == null? "null" : value.toString())));
+        }
+
         if (schemaParam != null) {
             if (schemaParam.getType() == Types.ARRAY ) {
                 ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
@@ -127,7 +138,7 @@ public final class DocumentUtils {
 
                 if(mongoDBTimestamp!=null){
 
-                    return Integer.valueOf(mongoDBTimestamp.getTime());
+                    return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
 
                 }else{
                     return null;
