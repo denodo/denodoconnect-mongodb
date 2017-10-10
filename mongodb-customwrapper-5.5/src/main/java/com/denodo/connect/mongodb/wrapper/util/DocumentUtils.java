@@ -134,11 +134,16 @@ public final class DocumentUtils {
 
             } else if (schemaParam.getType() == Types.TIMESTAMP) {
 
-                BsonTimestamp mongoDBTimestamp =  (BsonTimestamp) value;
+                if (value != null) {
 
-                if(mongoDBTimestamp!=null){
-
-                    return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
+                    if (value instanceof BsonTimestamp) {
+                        // BsonTimestamp, precision: second (UNIX time_t)
+                        final BsonTimestamp mongoDBTimestamp =  (BsonTimestamp) value;
+                        return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
+                    } else {
+                        // Most probably Date (BSON Date, with time), precision: millisecond
+                        return value;
+                    }
 
                 }else{
                     return null;
