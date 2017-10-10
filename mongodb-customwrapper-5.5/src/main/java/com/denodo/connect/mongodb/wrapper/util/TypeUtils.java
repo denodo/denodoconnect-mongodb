@@ -21,7 +21,6 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
-import java.sql.Date;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,14 +53,16 @@ public final class TypeUtils {
         map.put(Boolean.class, Integer.valueOf(Types.BOOLEAN));
         map.put(Double.class, Integer.valueOf(Types.DOUBLE));
         map.put(Float.class, Integer.valueOf(Types.FLOAT));
-        map.put(Date.class, Integer.valueOf(Types.TIMESTAMP));
         map.put(ArrayList.class, Integer.valueOf(Types.ARRAY));
         map.put(Document.class, Integer.valueOf(Types.STRUCT));
         map.put(Binary.class, Integer.valueOf(Types.VARBINARY));
         map.put(ObjectId.class, Integer.valueOf(Types.VARCHAR));
         map.put(Code.class, Integer.valueOf(Types.VARCHAR));
         map.put(Object.class, Integer.valueOf(Types.JAVA_OBJECT));
+        // BSON Timestamps are considered SQL Timestamp (second precision - UNIX time_t)
         map.put(BsonTimestamp.class, Integer.valueOf(Types.TIMESTAMP));
+        // BSON Dates are considered SQL Timestamp because they include the time (millisecond precision)
+        map.put(java.util.Date.class, Integer.valueOf(Types.TIMESTAMP));
 
         return map;
     }
