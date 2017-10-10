@@ -25,10 +25,10 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.bson.Document;
-
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
+import org.bson.BsonTimestamp;
+import org.bson.Document;
 
 
 public final class DocumentUtils {
@@ -120,7 +120,20 @@ public final class DocumentUtils {
                 }else{
                     return null;
                 }
+
+            } else if (schemaParam.getType() == Types.TIMESTAMP) {
+
+                BsonTimestamp mongoDBTimestamp =  (BsonTimestamp) value;
+
+                if(mongoDBTimestamp!=null){
+
+                    return Integer.valueOf(mongoDBTimestamp.getTime());
+
+                }else{
+                    return null;
+                }
             }
+
         }
 
         return value;
