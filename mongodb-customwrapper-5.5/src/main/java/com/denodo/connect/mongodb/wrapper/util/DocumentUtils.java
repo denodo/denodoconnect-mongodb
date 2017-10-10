@@ -21,6 +21,7 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
@@ -63,10 +64,27 @@ public final class DocumentUtils {
         return field;
     }
 
+
     public static Document buildMongoDocument(Map<CustomWrapperFieldExpression, Object> insertValues) throws RuntimeException {
-        Document doc = new Document();
+
+        final Document doc = new Document();
+
         for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
-            doc.append(field.getStringRepresentation(), insertValues.get(field));
+
+            final String fieldName = field.getStringRepresentation();
+            Object fieldValue = insertValues.get(field);
+
+            if (fieldValue != null) {
+                if (fieldValue instanceof java.sql.Timestamp) {
+                    // This is a special case. When the field is specifically identified as Timestamp, we will create
+                    // BsonTimestamp objects for insert/update/delete
+                    final Timestamp fvTimestamp = (Timestamp) fieldValue;
+                    fieldValue = new BsonTimestamp(Long.valueOf(fvTimestamp.getTime() / 1000L).intValue(), 1);
+                }
+            }
+
+            doc.append(fieldName, fieldValue);
+
         }
 
         return doc;
