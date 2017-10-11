@@ -21,7 +21,6 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
@@ -72,16 +71,13 @@ public final class DocumentUtils {
         for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
 
             final String fieldName = field.getStringRepresentation();
-            Object fieldValue = insertValues.get(field);
+            final Object fieldValue = insertValues.get(field);
 
-            if (fieldValue != null) {
-                if (fieldValue instanceof java.sql.Timestamp) {
-                    // This is a special case. When the field is specifically identified as Timestamp, we will create
-                    // BsonTimestamp objects for insert/update/delete
-                    final Timestamp fvTimestamp = (Timestamp) fieldValue;
-                    fieldValue = new BsonTimestamp(Long.valueOf(fvTimestamp.getTime() / 1000L).intValue(), 1);
-                }
-            }
+            // As of Denodo 6.0u8, fieldValue will never be a java.sql.Timestamp (all fields of type Date,
+            // whatever the subtype, are provided as java.util.Date). So we don't have the opportunity to make
+            // a difference between java.sql.Timestamp (which we would insert into MongoDB as BsonTimestamp) and
+            // java.util.Date/java.sql.Date (which we would insert into MongoDB as "normal" Date).
+            // As it is right now, ALL VQL "DATE" VALUES ARE INSERTED AS "Date" (BSON Type "Date") in MongoDB.
 
             doc.append(fieldName, fieldValue);
 
