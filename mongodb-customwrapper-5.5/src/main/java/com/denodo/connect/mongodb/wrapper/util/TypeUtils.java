@@ -59,6 +59,21 @@ public final class TypeUtils {
         map.put(ObjectId.class, Integer.valueOf(Types.VARCHAR));
         map.put(Code.class, Integer.valueOf(Types.VARCHAR));
         map.put(Object.class, Integer.valueOf(Types.JAVA_OBJECT));
+
+       /*
+         * Note: Even if as of Denodo 6.0u08 we could use SQL DATE and SQL TIMESTAMP to
+         * differentiate MongoDB's BSON DATE and BSON TIMESTAMP thanks to the fact that VDP
+         * an SQL DATE would be DATE+TIME, this will change in Denodo 7.0 and SQL DATE will
+         * be a proper Date (no time) in VQL, so such thing would be a bad idea for the future.
+         *
+         * This means that we will identify both MongoDB data types as the same in VDP, which will
+         * have as a consequence a limitation on WHERE clauses: no filters will be possible on
+         * MongoDB BSON TIMESTAMP fields. Also, no insertion of BSON TIMESTAMPS will be possible.
+         *
+         * This should be no real issue as MongoDB BSON TIMESTAMP data is considered for internal MongoDN
+         * use by the BSON specification: https://docs.mongodb.com/manual/reference/bson-types/#timestamps
+         */
+
         // BSON Timestamps are considered SQL Timestamp (second precision - UNIX time_t)
         map.put(BsonTimestamp.class, Integer.valueOf(Types.TIMESTAMP));
         // BSON Dates are considered SQL Timestamp because they include the time (millisecond precision)

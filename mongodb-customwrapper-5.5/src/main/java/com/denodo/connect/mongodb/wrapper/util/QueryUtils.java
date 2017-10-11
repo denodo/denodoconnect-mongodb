@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -106,7 +107,12 @@ public final class QueryUtils {
         return map;
     }
 
-    public static Bson buildQuery(CustomWrapperCondition vdpCondition) {
+
+    public static Bson buildQuery(CustomWrapperSchemaParameter[] schema, CustomWrapperCondition vdpCondition) {
+
+        // Note that the schema CAN BE NULL, as we will only have it in run() executions (queries), but not in
+        // updates, inserts or deletes due to a restriction in the Custom Wrapper API.
+
         Bson query =null;
 
         if (vdpCondition != null) {
@@ -115,7 +121,7 @@ public final class QueryUtils {
 
                 CustomWrapperAndCondition andCondition = (CustomWrapperAndCondition) vdpCondition;
                 for (CustomWrapperCondition condition : andCondition.getConditions()) {
-                    Bson andQuery =  buildQuery(condition);
+                    Bson andQuery =  buildQuery(schema, condition);
                    
                     if(query==null){
                         query=Filters.and(andQuery);
@@ -127,7 +133,7 @@ public final class QueryUtils {
             } else if (vdpCondition.isOrCondition()) {
                 CustomWrapperOrCondition orCondition = (CustomWrapperOrCondition) vdpCondition;
                 for (CustomWrapperCondition condition : orCondition.getConditions()) {
-                    Bson orQuery =  buildQuery(condition);
+                    Bson orQuery =  buildQuery(schema, condition);
                     if(query==null){
                         query=Filters.or(orQuery);
                     }else{
@@ -137,15 +143,24 @@ public final class QueryUtils {
 
             } else {
                 CustomWrapperSimpleCondition simpleCondition = (CustomWrapperSimpleCondition) vdpCondition;
+                CustomWrapperFieldExpression fieldExpression = (CustomWrapperFieldExpression) simpleCondition.getField();
 
-                String field = buildLeftOperand((CustomWrapperFieldExpression) simpleCondition.getField());
+                String field = buildLeftOperand(fieldExpression);
                 String operator = simpleCondition.getOperator();
                 query=new Document();
                 if (OPERATOR_ISNULL.equals(operator) || OPERATOR_ISNOTNULL.equals(operator)) {
                     addNullCondition((Document)query, field, operator);
                 } else {
+
+                    // Note we are not currently using the schema for anything here, as we are assuming as a limitation
+                    // the fact that we cannot make a difference betwen BSON Date and BSON Timestamp types.
+                    // Receiving the schema here however might be useful in the future in Denodo 7 when we have a richer
+                    // type system and hopefully a set of "original source type" metainformation associated with
+                    // the CustomWrapperSchemaParameter objects.
+
                     Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
                     addCondition( (Document)query, field, operator, value);
+
                 }
 
 

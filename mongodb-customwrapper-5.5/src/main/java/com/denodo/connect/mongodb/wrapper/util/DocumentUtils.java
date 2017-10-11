@@ -21,152 +21,54 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
-import java.sql.Types;
-import java.util.ArrayList;
 import java.util.Map;
 
-import com.denodo.connect.mongodb.wrapper.MongoDBWrapper;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import org.apache.log4j.Logger;
-import org.bson.BsonTimestamp;
 import org.bson.Document;
 
 
 public final class DocumentUtils {
 
     // We are getting the logger for the MongoDBWrapper on purpose, so that all logging is done from there
-    private static final Logger logger = Logger.getLogger(MongoDBWrapper.class);
+    private static final Logger logger = Logger.getLogger(DocumentUtils.class);
 
 
     private DocumentUtils() {
     }
 
-    public static Object buildVDPColumn(Document document, String fullName, CustomWrapperSchemaParameter[] schema) {
 
-        String[] tokens = fullName.split("\\.");
-
-        Object field = document;
-        CustomWrapperSchemaParameter[] currentSchema = schema;
-        CustomWrapperSchemaParameter schemaParam = null;
-        for (int i = 0; i < tokens.length && field != null; i++) {
-            String name = tokens[i];
-            field =  ((Document)field).get(name);
-            schemaParam = getSchemaParameter(currentSchema, name);
-            if (schemaParam != null) {
-                currentSchema = schemaParam.getColumns();
-            }
-        }
-
-        field = doBuildVDPColumn(field, schemaParam);
-
-        return field;
-    }
-
-
-    public static Document buildMongoDocument(Map<CustomWrapperFieldExpression, Object> insertValues) throws RuntimeException {
+    public static Document buildMongoDocument(
+            final CustomWrapperSchemaParameter[] schema, Map<CustomWrapperFieldExpression, Object> values)
+            throws RuntimeException {
 
         final Document doc = new Document();
 
-        for (final CustomWrapperFieldExpression field : insertValues.keySet()) {
+        for (final CustomWrapperFieldExpression field : values.keySet()) {
 
             final String fieldName = field.getStringRepresentation();
-            final Object fieldValue = insertValues.get(field);
+            final Object fieldValue = values.get(field);
 
-            // As of Denodo 6.0u8, fieldValue will never be a java.sql.Timestamp (all fields of type Date,
-            // whatever the subtype, are provided as java.util.Date). So we don't have the opportunity to make
-            // a difference between java.sql.Timestamp (which we would insert into MongoDB as BsonTimestamp) and
-            // java.util.Date/java.sql.Date (which we would insert into MongoDB as "normal" Date).
-            // As it is right now, ALL VQL "DATE" VALUES ARE INSERTED AS "Date" (BSON Type "Date") in MongoDB.
+            if (logger.isTraceEnabled()) {
+                logger.trace(
+                        String.format("Building MongoDB document field '%s' with type '%s' and value '%s'",
+                                fieldName,
+                                (fieldValue == null? "null" : fieldValue.getClass().getName()),
+                                (fieldValue == null? "null" : fieldValue.toString())));
+            }
+
+            // As of Denodo 6.0u08, fieldValue will never be a java.sql.Timestamp (all fields of type Date,
+            // whatever the subtype, are provided as java.util.Date). Also, we have no way to establish the difference
+            // between a Date that was a BSON TIMESTAMP at MongoDB and a Date that was a BSON DATE at MongoDB, so
+            // we will only use DATE and assume as limitation the fact that no queries can be performed with filters
+            // on fields of type BSON TIMESTAMP.
 
             doc.append(fieldName, fieldValue);
 
         }
 
         return doc;
-    }
-    
-    
-    private static CustomWrapperSchemaParameter getSchemaParameter(CustomWrapperSchemaParameter[] schema, String field) {
-
-        CustomWrapperSchemaParameter parameter = null;
-        boolean found = false;
-        if (schema != null) {
-            for (int i = 0; i < schema.length && !found; i++) {
-                CustomWrapperSchemaParameter p = schema[i];
-                if (field.equals(p.getName())) {
-                    parameter = p;
-                    found = true;
-                }
-            }
-        }
-
-        return parameter;
-    }
-
-    private static Object doBuildVDPColumn(Object value, CustomWrapperSchemaParameter schemaParam) {
-
-        if (logger.isTraceEnabled()) {
-            logger.trace(
-                    String.format("Building VDP column '%s' with type '%s' and value '%s'",
-                            schemaParam.getName(), schemaParam.getType(), (value == null? "null" : value.toString())));
-        }
-
-        if (schemaParam != null) {
-            if (schemaParam.getType() == Types.ARRAY ) {
-                ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
-                if(mongoDBArray!=null){
-                    Object[][] vdpArray = new Object[mongoDBArray.size()][1];
-                    int i = 0;
-                    for (Object element : mongoDBArray) {
-                        CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
-                        vdpArray[i++][0] = doBuildVDPColumn(element, elementSchema[0]);
-                    }
-
-                    return vdpArray;}
-                else{
-                    return null;
-                }
-
-            } else if (schemaParam.getType() == Types.STRUCT) {
-                Document mongoDBRecord =  (Document) value;
-
-
-                if(mongoDBRecord!=null){
-                    Object[] vdpRecord = new Object[schemaParam.getColumns().length];
-                    int i = 0;
-                    for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
-                        Object fieldValue = mongoDBRecord.get(param.getName());
-                        vdpRecord[i++] = doBuildVDPColumn(fieldValue, param);
-                    }
-
-
-                    return vdpRecord;
-                }else{
-                    return null;
-                }
-
-            } else if (schemaParam.getType() == Types.TIMESTAMP) {
-
-                if (value != null) {
-
-                    if (value instanceof BsonTimestamp) {
-                        // BsonTimestamp, precision: second (UNIX time_t)
-                        final BsonTimestamp mongoDBTimestamp =  (BsonTimestamp) value;
-                        return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
-                    } else {
-                        // Most probably Date (BSON Date, with time), precision: millisecond
-                        return value;
-                    }
-
-                }else{
-                    return null;
-                }
-            }
-
-        }
-
-        return value;
     }
 
 }

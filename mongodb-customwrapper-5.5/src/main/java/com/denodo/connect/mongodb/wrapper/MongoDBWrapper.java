@@ -32,6 +32,7 @@ import java.util.Set;
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
 import com.denodo.connect.mongodb.wrapper.util.QueryUtils;
+import com.denodo.connect.mongodb.wrapper.util.ResultUtils;
 import com.denodo.connect.mongodb.wrapper.util.SchemaFieldsParsingUtil;
 import com.denodo.vdb.engine.customwrapper.AbstractCustomWrapper;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperConfiguration;
@@ -360,11 +361,12 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         try {
 
+            final CustomWrapperSchemaParameter[] schema = result.getSchema();
+
             final MongoDBClient client = connect(inputValues,false);
-            final FindIterable<Document> cursor = query(client, condition, projectedFields);
+            final FindIterable<Document> cursor = query(client, condition, projectedFields, schema);
          
 
-            CustomWrapperSchemaParameter[] schema = result.getSchema();
             if (logger.isDebugEnabled()) {
                 logger.debug("Querying mongoDB source using the following schema: " + getSchemaRepresentation(schema));
             }
@@ -374,7 +376,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             while (iterator.hasNext()) {
                 final Document document = iterator.next();
                 for (final CustomWrapperFieldExpression field : projectedFields) {
-                    final Object column = DocumentUtils.buildVDPColumn(document, field.getName(), schema);
+                    final Object column = ResultUtils.buildResultColumnValue(document, field.getName(), schema);
                     row.add(column);
                 }
 
@@ -403,7 +405,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final MongoCollection<Document> coll = client.getCollection();
 
 
-            final Document doc = DocumentUtils.buildMongoDocument(insertValues);
+            final Document doc =
+                    DocumentUtils.buildMongoDocument(null /* no schema available */, insertValues);
             coll.insertOne(doc);
             return 1;
         } catch (final Exception e) {
@@ -424,19 +427,20 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final MongoCollection<Document> coll = client.getCollection();
 
             // Search query
-            final Bson searchQuery = QueryUtils.buildQuery(condition.getComplexCondition());
+            final Bson searchQuery =
+                    QueryUtils.buildQuery(null /* no schema available */, condition.getComplexCondition());
 
             // New values
             final Document updateQuery = new Document();
-            updateQuery.append("$set", DocumentUtils.buildMongoDocument(newValues));
+            updateQuery.append("$set", DocumentUtils.buildMongoDocument(null /* no schema available */, newValues));
 
             // Execute update
             coll.updateMany(searchQuery, updateQuery);
 
-//            /*
-//             * MongoDB does not tell you how many records have been updated To get this number, we would have to run the
-//             * search query first. That would be very slow. therefore, as a tradeoff, 1 is returned always
-//             */
+            /*
+             * MongoDB does not tell you how many records have been updated To get this number, we would have to run the
+             * search query first. That would be very slow. therefore, as a tradeoff, 1 is returned always
+             */
             return 1;
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
@@ -455,7 +459,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
             final Map<CustomWrapperFieldExpression, Object> conditionValues = condition.getConditionMap();
 
-            final Document doc = DocumentUtils.buildMongoDocument(conditionValues);
+            final Document doc =
+                    DocumentUtils.buildMongoDocument(null /* no schema available */, conditionValues);
 
             final DeleteResult wr = coll.deleteMany(doc);
 
@@ -484,9 +489,14 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, test);
     }
 
-    private FindIterable<Document> query(final MongoDBClient client, final CustomWrapperConditionHolder condition, List<CustomWrapperFieldExpression> projectedFields) {
 
-        final Bson query = QueryUtils.buildQuery(condition.getComplexCondition());
+    private FindIterable<Document> query(
+            final MongoDBClient client,
+            final CustomWrapperConditionHolder condition,
+            final List<CustomWrapperFieldExpression> projectedFields,
+            final CustomWrapperSchemaParameter[] schema) {
+
+        final Bson query = QueryUtils.buildQuery(schema, condition.getComplexCondition());
         if(query != null){ // Note this should never be null (it is guaranteeed at QueryUtils.buildQuery(...)
             final BsonDocument queryDocument = query.toBsonDocument(null, client.getMongoClient().getMongoClientOptions().getCodecRegistry());
             final String queryStringRep = (queryDocument != null? queryDocument.toString() : "(not representable)");
