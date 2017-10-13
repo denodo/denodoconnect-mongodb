@@ -1,3 +1,7 @@
+20171013
+========
+- #34025 - Improve support for MongoDB's internal "BSON Timestamp" data type.
+
 20170919
 ========
 - Fixed #33753 - Correctly deal with BsonTimestamp when creating schema from introspection query
