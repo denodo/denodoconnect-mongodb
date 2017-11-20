@@ -96,11 +96,19 @@ public class SchemaBuilder {
             Document subDocument = (Document) field;
             DocumentType documentType = new DocumentType(key);
             if(!subDocument.isEmpty()){
-              //if the document is empty is not possible to represent in VDP 
+                // if the document is empty it is not possible to represent in VDP
+                boolean isEmpty = true;
                 for (Map.Entry<String, Object> entry : subDocument.entrySet()) {
-                    documentType.add(getFieldType(entry.getKey(), entry.getValue()));
+                    final Type entryType = getFieldType(entry.getKey(), entry.getValue());
+                    if (entryType != null) {
+                        documentType.add(entryType);
+                        isEmpty = false;
+                    }
                 }
-                fieldType = documentType;
+                if (!isEmpty) {
+                    // if the document is empty it is not possible to represent in VDP
+                    fieldType = documentType;
+                }
             }
         } else {
             if(field!= null){
