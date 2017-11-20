@@ -1,3 +1,7 @@
+20171120
+========
+- #34474 - Bad introspection of empty complex fields inside embedded documents
+
 20171013
 ========
 - #34025 - Improve support for MongoDB's internal "BSON Timestamp" data type.
