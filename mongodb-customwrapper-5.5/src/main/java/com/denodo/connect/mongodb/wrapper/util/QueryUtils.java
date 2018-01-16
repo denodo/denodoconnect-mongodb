@@ -146,9 +146,8 @@ public final class QueryUtils {
 
                 String field = buildLeftOperand(fieldExpression);
                 String operator = simpleCondition.getOperator();
-                query=new Document();
                 if (OPERATOR_ISNULL.equals(operator) || OPERATOR_ISNOTNULL.equals(operator)) {
-                    addNullCondition((Document)query, field, operator);
+                    query = buildNullCondition((Document)query, field, operator);
                 } else {
 
                     // Note we are not currently using the schema for anything here, as we are assuming as a limitation
@@ -157,6 +156,7 @@ public final class QueryUtils {
                     // type system and hopefully a set of "original source type" metainformation associated with
                     // the CustomWrapperSchemaParameter objects.
 
+                    query=new Document();
                     Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
                     addCondition( (Document)query, field, operator, value);
 
@@ -238,17 +238,11 @@ public final class QueryUtils {
      *    - The field is set to null explicitely
      *  the implementetion is an OR of both
      */
-    private static void addNullCondition(Document query, String field, String op) {
-        String mongoDBop = MONGODB_OPERATORS.get(op);
-        // IS NULL
+    private static Bson buildNullCondition(Document query, String field, String op) {
         if (OPERATOR_ISNULL.equals(op)) {
-
-            query.append(field, Filters.or(Filters.exists(field, false), Filters.eq(field, null)));
-
+            return Filters.or(Filters.exists(field, false), Filters.eq(field, null));
         } else { // IS NOT NULL
-
-            query.append(field, Filters.and(Filters.exists(field), Filters.ne(field, null)));
-
+            return Filters.and(Filters.exists(field), Filters.ne(field, null));
         }
     }
 
