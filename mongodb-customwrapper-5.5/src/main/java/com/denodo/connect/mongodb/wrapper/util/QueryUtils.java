@@ -21,6 +21,28 @@
  */
 package com.denodo.connect.mongodb.wrapper.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
+import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression;
+import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression.ORDER;
+import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
+import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperAndCondition;
+import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition;
+import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperOrCondition;
+import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperSimpleCondition;
+import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
+import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpression;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
@@ -30,29 +52,6 @@ import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditi
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
-
-import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
-import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression;
-import com.denodo.vdb.engine.customwrapper.CustomWrapperOrderByExpression.ORDER;
-import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperAndCondition;
-import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition;
-import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperOrCondition;
-import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperSimpleCondition;
-import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
-import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpression;
-import com.mongodb.client.model.Filters;
 
 
 public final class QueryUtils {
@@ -243,19 +242,13 @@ public final class QueryUtils {
         String mongoDBop = MONGODB_OPERATORS.get(op);
         // IS NULL
         if (OPERATOR_ISNULL.equals(op)) {
-            // Implementation with exists
-            Document  existsFilter = new Document();
-            Boolean value = Boolean.FALSE;
-            existsFilter.append(field, new Document(mongoDBop, value));
-            
-            // Implementation with value = null
-            Document  nullFilter = new Document();
-            nullFilter.append(field, null);
-            
-            query = (Document) Filters.or(existsFilter, nullFilter);
+
+            query.append(field, Filters.or(Filters.exists(field, false), Filters.eq(field, null)));
+
         } else { // IS NOT NULL
-            Boolean value = Boolean.TRUE;
-             query.append(field, new Document(mongoDBop, value));
+
+            query.append(field, Filters.and(Filters.exists(field), Filters.ne(field, null)));
+
         }
     }
 
