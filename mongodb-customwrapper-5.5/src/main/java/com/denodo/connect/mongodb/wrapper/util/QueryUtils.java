@@ -36,6 +36,7 @@ import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperAndCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperOrCondition;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperSimpleCondition;
+import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperExpression;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperSimpleExpression;
 import com.mongodb.client.model.Filters;
@@ -46,6 +47,7 @@ import org.bson.types.ObjectId;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
@@ -90,6 +92,7 @@ public final class QueryUtils {
         map.put(OPERATOR_LIKE, "$regex");
         map.put(OPERATOR_ISNULL, "$exists");
         map.put(OPERATOR_ISNOTNULL, "$exists");
+        map.put(OPERATOR_IN, "$in");
 
         return map;
     }
@@ -157,8 +160,22 @@ public final class QueryUtils {
                     // the CustomWrapperSchemaParameter objects.
 
                     query=new Document();
-                    Object value = ((CustomWrapperSimpleExpression) simpleCondition.getRightExpression()[0]).getValue();
-                    addCondition( (Document)query, field, operator, value);
+
+                    final CustomWrapperExpression[] rightSide = simpleCondition.getRightExpression();
+                    final Object rightSideValue;
+                    if (OPERATOR_IN.equals(operator)) {
+                        // If operator is an IN, we need to take care of all the specified values, and set them into a List
+                        final List<Object> rightSideValues = new ArrayList<Object>();
+                        for (int i = 0; i < rightSide.length; i++) {
+                            rightSideValues.add(((CustomWrapperSimpleExpression)rightSide[i]).getValue());
+                        }
+                        rightSideValue = rightSideValues;
+                    } else {
+                        // Otherwise, just get the first position of the array (there will be only one)
+                        rightSideValue = ((CustomWrapperSimpleExpression)rightSide[0]).getValue();
+                    }
+
+                    addCondition( (Document)query, field, operator, rightSideValue);
 
                 }
 
@@ -251,8 +268,12 @@ public final class QueryUtils {
         Object result = null;
         if (MONGODB_ID_FIELD.equals(field)) {
             result = handleMongoDBId(value);
+//        } else if (OPERATOR_IN.equals(op)){
+//            result = value;
+        } else if (OPERATOR_LIKE.equals(op)){
+            result = translateRegex(value);
         } else {
-            result = op.equals(OPERATOR_LIKE) ? translateRegex(value) : value;
+            result = value;
         }
 
         return result;

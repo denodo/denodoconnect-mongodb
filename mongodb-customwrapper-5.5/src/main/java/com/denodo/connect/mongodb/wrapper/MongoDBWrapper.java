@@ -57,6 +57,7 @@ import org.bson.conversions.Bson;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
 import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
@@ -144,7 +145,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         configuration.setAllowedOperators(new String[] {
                 OPERATOR_EQ, OPERATOR_NE, OPERATOR_LT, OPERATOR_LE,
                 OPERATOR_GT, OPERATOR_GE, OPERATOR_LIKE, OPERATOR_ISNULL,
-                OPERATOR_ISNOTNULL
+                OPERATOR_ISNOTNULL, OPERATOR_IN
         });
 
         return configuration;
