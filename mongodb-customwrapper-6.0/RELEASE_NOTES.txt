@@ -1,3 +1,7 @@
+20180326
+========
+- Added #36668 - Add support to delegate the operator "IN" to the MongoDB wrapper
+
 20180116
 ========
 - Fixed #35275 - Bad translation of IS NULL and IS NOT NULL filters.

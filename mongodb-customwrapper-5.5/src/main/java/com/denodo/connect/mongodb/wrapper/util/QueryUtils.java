@@ -268,8 +268,6 @@ public final class QueryUtils {
         Object result = null;
         if (MONGODB_ID_FIELD.equals(field)) {
             result = handleMongoDBId(value);
-//        } else if (OPERATOR_IN.equals(op)){
-//            result = value;
         } else if (OPERATOR_LIKE.equals(op)){
             result = translateRegex(value);
         } else {
