@@ -1,3 +1,7 @@
+20180712
+========
+Add #33193 - Update mongoDB driver to 3.8.0
+
 20170303
 ========
 - Added #31468 - Improve mechanism for specifying the mongoDB schema in explicit form using the "Fields" input parameter 

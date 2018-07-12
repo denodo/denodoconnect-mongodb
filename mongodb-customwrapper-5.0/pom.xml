@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-5.0</artifactId>
-    <version>20170303</version>
+    <version>20180712</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-5.0</name>
 
@@ -180,7 +180,7 @@
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
-            <version>2.11.3</version>
+            <version>3.8.0</version>
         </dependency>
         
         <dependency>

@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-7.0</artifactId>
-    <version>20180601</version>
+    <version>20180712</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-7.0</name>
 
@@ -53,8 +53,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.3.2</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>US-ASCII</encoding>
                 </configuration>
             </plugin>
@@ -63,6 +63,19 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>2.1.2</version>
+                <configuration>
+                  <archive>
+                    <addMavenDescriptor>false</addMavenDescriptor>
+                    <manifest>
+                      <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                      <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                    </manifest>
+                    <manifestEntries>
+                      <!-- Setting this overrides the standard value, which is set to the user building the release -->
+                      <Built-By>denodo</Built-By>
+                    </manifestEntries>
+                  </archive>
+                </configuration>  
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -80,6 +93,15 @@
             <configuration>
               <archive>
                 <addMavenDescriptor>false</addMavenDescriptor>
+                <manifest>
+                  <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+                <manifestEntries>
+                  <!-- Setting this overrides the standard value, which is set to the user building the release -->
+                  <Built-By>denodo</Built-By>
+                </manifestEntries>
+                
                 <manifestSections>
                   <manifestSection>
                     <name>com.denodo</name>
@@ -160,18 +182,6 @@
 
         <!-- Custom Wrapper necessary libraries  -->
         <dependency>
-            <groupId>com.denodo.commons</groupId>
-            <artifactId>denodo-commons-util</artifactId>
-            <version>7.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.denodo.commons</groupId>
-            <artifactId>denodo-commons-store</artifactId>
-            <version>7.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.denodo.vdp</groupId>
             <artifactId>denodo-vdp-server</artifactId>
             <version>7.0.0</version>
@@ -182,7 +192,7 @@
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
-            <version>3.1.1</version>
+            <version>3.8.0</version>
         </dependency>
         
         <dependency>

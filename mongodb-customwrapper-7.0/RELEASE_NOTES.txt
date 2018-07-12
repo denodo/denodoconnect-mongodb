@@ -1,3 +1,7 @@
+20180712
+========
+Add #33193 - Update mongoDB driver to 3.8.0
+
 20180601
 ========
 - Fixed #37841 - Operator "IN" is delegated badly when _id field is an ObjectID
