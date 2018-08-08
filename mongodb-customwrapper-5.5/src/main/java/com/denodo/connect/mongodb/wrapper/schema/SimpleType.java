@@ -21,6 +21,10 @@
  */
 package com.denodo.connect.mongodb.wrapper.schema;
 
+import java.sql.Types;
+
+import org.bson.BsonTimestamp;
+
 import com.denodo.connect.mongodb.wrapper.util.TypeUtils;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 
@@ -109,6 +113,37 @@ public class SimpleType extends Type {
         return "name:" + getName() + ", javaClass:" + this.javaClass.getSimpleName();
     }
 
+    /**
+     * Transforms this type to a parameter of the Custom Wrapper's schema.
+     * The SQL type and the subschema may vary depending on the concrete type.
+     */
+    @Override
+    public CustomWrapperSchemaParameter buildSchemaParameter() {
 
+        boolean searchable = true;
+        boolean updateable = true;
+        boolean nullable = true;
+        boolean mandatory = true;
+
+        int sqlType = getSQLType();
+        CustomWrapperSchemaParameter[] subSchema = getSubSchema();
+        
+        //  BSON Timestamp fields are supported but are not allowed to be present in WHERE clauses. 
+        // The reason is, due to the impossibility to differentiate them from the normal BSON Date type, 
+        // BSON Timestamp have no way of being adequately represented in the query documents. 
+        // We make BSON Timestamps "not-searchables" so they can be filtered at the VDP side
+        if (Types.TIMESTAMP == sqlType && this.getJavaClass().equals(BsonTimestamp.class)) {
+        	return new CustomWrapperSchemaParameter(getName(), sqlType,
+                    subSchema, false, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+        } else if (sqlType != Types.ARRAY && sqlType!= Types.STRUCT) {
+            return new CustomWrapperSchemaParameter(getName(), sqlType,
+                    subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                    updateable, nullable, !mandatory);
+        } 
+        return new CustomWrapperSchemaParameter(getName(), sqlType,
+            subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+            !updateable, nullable, !mandatory);
+    }
 
 }

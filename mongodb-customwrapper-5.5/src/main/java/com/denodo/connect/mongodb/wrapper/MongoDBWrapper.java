@@ -20,6 +20,17 @@
  */
 package com.denodo.connect.mongodb.wrapper;
 
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
+
 import java.lang.reflect.Field;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -28,6 +39,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
@@ -48,22 +65,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.bson.BsonDocument;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
 
@@ -80,6 +81,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String INTROSPECTION_QUERY = "Introspection query";
     private static final String ARRAY_ITEM_SUFFIX = "_ITEM";
     private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
+    
+    private boolean stopRequested = false;
 
     private static Map<String, Integer> getSQLTypes() {
 
@@ -111,7 +114,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 new CustomWrapperInputParameter(PORT, "Port number to connect to MongoDB, default is 27017 ",
                         false, CustomWrapperInputParameterTypeFactory.integerType()),
                 new CustomWrapperInputParameter(USER, "Username to connect to MongoDB, if authentication enabled ",
-                        false, CustomWrapperInputParameterTypeFactory.stringType()),
+                        false, CustomWrapperInputParameterTypeFactory.loginType()),
                 new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
                         false, CustomWrapperInputParameterTypeFactory.passwordType()),
                 new CustomWrapperInputParameter(DATABASE, "Database name ",
@@ -255,6 +258,15 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         }
 
         if (fieldValue instanceof String) {
+        	
+        	// BSON timestamp fields need to be set as non-searchables. They are supported but are not allowed 
+        	// to be present in WHERE clauses. The reason is, due to the impossibility to differentiate them from the normal 
+        	// BSON Date type, BSON Timestamp have no way of being adequately represented in the query documents.
+        	if (Types.TIMESTAMP == ((Integer) fieldValue).intValue()) {
+        		return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) fieldValue),
+                        null, false, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
+                        updateable, nullable, !mandatory);
+			}
 
             return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) fieldValue),
                     null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
@@ -361,6 +373,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             throws CustomWrapperException {
 
         try {
+        	
+            if (this.stopRequested) {
+                log(LOG_DEBUG, "Stop has been requested");
+                return;
+            }
 
             final CustomWrapperSchemaParameter[] schema = result.getSchema();
 
@@ -374,7 +391,12 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
             final List<Object> row = new ArrayList<Object>();
             MongoCursor<Document> iterator=cursor.iterator();
-            while (iterator.hasNext()) {
+            while (!stopRequested && iterator.hasNext()) {
+                if (this.stopRequested) {
+                    log(LOG_DEBUG, "Stop has been requested");
+                    break;
+                }
+
                 final Document document = iterator.next();
                 for (final CustomWrapperFieldExpression field : projectedFields) {
                     final Object column = ResultUtils.buildResultColumnValue(document, field.getName(), schema);
@@ -568,4 +590,10 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         return strBuilder.toString();
     }
 
+    @Override
+    public boolean stop() {
+    	this.stopRequested = true;
+		return true;
+    }
+ 
 }
