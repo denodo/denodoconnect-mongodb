@@ -258,15 +258,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         }
 
         if (fieldValue instanceof String) {
-        	
-        	// BSON timestamp fields need to be set as non-searchables. They are supported but are not allowed 
-        	// to be present in WHERE clauses. The reason is, due to the impossibility to differentiate them from the normal 
-        	// BSON Date type, BSON Timestamp have no way of being adequately represented in the query documents.
-        	if (Types.TIMESTAMP == ((Integer) fieldValue).intValue()) {
-        		return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) fieldValue),
-                        null, false, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
-                        updateable, nullable, !mandatory);
-			}
 
             return new CustomWrapperSchemaParameter(fieldName, getSQLType((String) fieldValue),
                     null, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,

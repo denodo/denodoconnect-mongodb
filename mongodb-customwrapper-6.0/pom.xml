@@ -7,7 +7,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
     <artifactId>denodo-mongodb-customwrapper-6.0</artifactId>
-    <version>20180712</version>
+    <version>20180814</version>
     <packaging>jar</packaging>
     <name>denodo-mongodb-customwrapper-6.0</name>
 

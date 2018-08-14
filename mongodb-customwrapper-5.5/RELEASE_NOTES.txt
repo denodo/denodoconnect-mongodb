@@ -1,3 +1,13 @@
+20180814
+========
+- Add #38065 - Stop method is not implemented
+- Add #29776 - MongoDB authentication pass-through
+- Fixed #36045 - Set BSON Timestamp fields as "not searchable"
+- Add #37654 - Connect to Cosmos DI via MongoDB Wrapper
+- Add #38488 - Document CosmosDB support
+- Add #34191 - Add compatible versions of VDP to MongoDB wrapper documentation
+- Add #38064 - Clarify in the user manual that functions and the group by are not being delegated
+
 20180712
 ========
 Add #33193 - Update mongoDB driver to 3.8.0
