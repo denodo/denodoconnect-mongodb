@@ -1,3 +1,7 @@
+20180924
+========
+- Support TLS 1.2 in Java 7 environments like Denodo 6.
+
 20180814
 ========
 - Add #38065 - Stop method is not implemented
