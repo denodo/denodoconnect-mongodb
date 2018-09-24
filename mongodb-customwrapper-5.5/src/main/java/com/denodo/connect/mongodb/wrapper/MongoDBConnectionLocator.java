@@ -26,9 +26,6 @@ import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
@@ -36,6 +33,8 @@ import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 
 public final class MongoDBConnectionLocator {
@@ -57,10 +56,10 @@ public final class MongoDBConnectionLocator {
      * @throws Exception 
      */
     public static MongoClient getConnection(String host, Integer port, String user, String password,
-        String db, String connectionString, String uri,  MongoClientURI mongoURI, Boolean test) throws Exception {
+                                            String db, String connectionString, String uri, MongoClientURI mongoURI, Boolean test) throws Exception {
 
         try {
-        
+
             MongoClient client = mongoCache.get(uri);
             if (client == null) {
                 if(!StringUtils.isNotBlank(connectionString)){

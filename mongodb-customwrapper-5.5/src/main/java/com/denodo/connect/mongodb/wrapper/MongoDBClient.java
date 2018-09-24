@@ -23,6 +23,9 @@ package com.denodo.connect.mongodb.wrapper;
 
 import java.io.IOException;
 
+import javax.net.ssl.SSLContext;
+
+import com.mongodb.MongoClientOptions;
 import org.apache.commons.lang.StringUtils;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -43,9 +46,18 @@ public class MongoDBClient {
     private MongoCollection<Document> collection;
 
     public MongoDBClient(String host, Integer port, String user, String password,
-        String dbName, String collectionName, String connectionString, Boolean test) throws Exception {
-        String uri = MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
-        MongoClientURI mongoURI = new MongoClientURI(uri);
+                         String dbName, String collectionName, String connectionString,
+                         Boolean test) throws Exception {
+
+        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+        final MongoClientOptions.Builder optionsBuilder =
+                MongoClientOptions.builder().socketFactory(sslContext.getSocketFactory());
+
+        final String uri =
+                MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
+
+        final MongoClientURI mongoURI = new MongoClientURI(uri, optionsBuilder);
+
         String databaseName=dbName;
         if(StringUtils.isNotBlank(connectionString)){//Connection with connection string parameter
             databaseName=mongoURI.getDatabase();
