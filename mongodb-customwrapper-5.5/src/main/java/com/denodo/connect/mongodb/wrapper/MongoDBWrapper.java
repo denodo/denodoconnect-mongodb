@@ -158,6 +158,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public CustomWrapperSchemaParameter[] getSchemaParameters(
             final Map<String, String> inputValues) throws CustomWrapperException {
         try {
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Executing getSchemaParameters");
+            }
+
             // Check input here so we can inform the user about errors at base view creation time.
             checkInput(inputValues);
 
@@ -172,11 +177,18 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                     schema = getSchemaFromQuery(inputValues,client);
                 }
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished getSchemaParameters: OK");
+            }
+
             return schema;
 
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished getSchemaParameters: EXCEPTION: " + e.getMessage());
+            }
             throw new CustomWrapperException(errorMsg, e);
         }
        
@@ -364,7 +376,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             throws CustomWrapperException {
 
         try {
-        	
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Executing run()");
+            }
+
             if (this.stopRequested) {
                 log(LOG_DEBUG, "Stop has been requested");
                 return;
@@ -399,9 +415,16 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             }
             iterator.close();
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished run(): OK");
+            }
+
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished run(): EXCEPTION: " + e.getMessage());
+            }
             throw new CustomWrapperException(errorMsg, e);
         }
     }
@@ -412,7 +435,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public int insert(final Map<CustomWrapperFieldExpression, Object> insertValues,
             final Map<String, String> inputValues)
             throws CustomWrapperException {
-        
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Executing insert()");
+        }
+
         try {
 
             final MongoDBClient client = connect(inputValues,false);
@@ -422,10 +449,18 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final Document doc =
                     DocumentUtils.buildMongoDocument(null /* no schema available */, insertValues);
             coll.insertOne(doc);
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished insert(): OK");
+            }
+
             return 1;
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished insert(): EXCEPTION: " + e.getMessage());
+            }
             throw new CustomWrapperException(errorMsg, e);
         }
     }
@@ -434,7 +469,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     public int update(final Map<CustomWrapperFieldExpression, Object> newValues,
             final CustomWrapperConditionHolder condition, final Map<String, String> inputValues)
             throws CustomWrapperException {
-        
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Executing update()");
+        }
+
         try {
 
             final MongoDBClient client = connect(inputValues,false);
@@ -451,6 +490,10 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             // Execute update
             coll.updateMany(searchQuery, updateQuery);
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished update(): OK");
+            }
+
             /*
              * MongoDB does not tell you how many records have been updated To get this number, we would have to run the
              * search query first. That would be very slow. therefore, as a tradeoff, 1 is returned always
@@ -459,6 +502,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished update(): EXCEPTION: " + e.getMessage());
+            }
             throw new CustomWrapperException(errorMsg, e);
         }
     }
@@ -466,6 +512,11 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     @Override
     public int delete(final CustomWrapperConditionHolder condition, final Map<String, String> inputValues)
             throws CustomWrapperException {
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Executing delete()");
+        }
+
         try {
 
             final MongoDBClient client = connect(inputValues, false);
@@ -478,11 +529,18 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
             final DeleteResult wr = coll.deleteMany(doc);
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished delete(): OK");
+            }
+
             // Return the number of documents affected
             return (int) wr.getDeletedCount();
         } catch (final Exception e) {
             final String errorMsg = "MongoDB wrapper error. " + e.getMessage();
             logger.error(errorMsg, e);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished delete(): EXCEPTION: " + e.getMessage());
+            }
             throw new CustomWrapperException(errorMsg, e);
         }
         
