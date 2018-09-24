@@ -51,7 +51,7 @@ public class MongoDBClient {
 
         final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         final MongoClientOptions.Builder optionsBuilder =
-                MongoClientOptions.builder().socketFactory(sslContext.getSocketFactory());
+                MongoClientOptions.builder().sslEnabled(true).socketFactory(sslContext.getSocketFactory());
 
         final String uri =
                 MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
