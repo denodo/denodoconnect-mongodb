@@ -49,9 +49,9 @@ public class MongoDBClient {
                          String dbName, String collectionName, String connectionString,
                          Boolean test) throws Exception {
 
-        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+//        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         final MongoClientOptions.Builder optionsBuilder =
-                MongoClientOptions.builder().sslEnabled(true).socketFactory(sslContext.getSocketFactory());
+                MongoClientOptions.builder()./*socketFactory(sslContext.getSocketFactory()).*/sslEnabled(true);
 
         final String uri =
                 MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
