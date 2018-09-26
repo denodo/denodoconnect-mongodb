@@ -78,6 +78,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     private static final String COLLECTION = "Collection";
     private static final String FIELDS = "Fields";
     private static final String CONNECTION_STRING = "Connection String";
+    private static final String USE_SSL = "Use SSL/TLS";
     private static final String INTROSPECTION_QUERY = "Introspection query";
     private static final String ARRAY_ITEM_SUFFIX = "_ITEM";
     private static final Map<String, Integer> SQL_TYPES = getSQLTypes();
@@ -126,6 +127,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                                 "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/database[?options] \n"                                
                                 + "This parameter is an alternative to put database, host and port parameters  ",
                                 false, CustomWrapperInputParameterTypeFactory.stringType()),
+                new CustomWrapperInputParameter(
+                        USE_SSL, "The MongoDB server requires SSL/TLS connectivity",
+                        false, CustomWrapperInputParameterTypeFactory.booleanType(false)),
                 new CustomWrapperInputParameter(
                         FIELDS,
                         "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
@@ -557,8 +561,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String dbName = inputValues.get(DATABASE);
         final String collectionName = inputValues.get(COLLECTION);
         final String connectionString = inputValues.get(CONNECTION_STRING);
+        final boolean ssl = Boolean.parseBoolean(inputValues.get(USE_SSL));
         
-        return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, test);
+        return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, ssl, test);
     }
 
 

@@ -60,8 +60,15 @@ public final class MongoDBConnectionLocator {
 
         try {
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Locating MongoDB connection for URI: \"" + mongoURI.toString() + "\"");
+            }
+
             MongoClient client = mongoCache.get(uri);
             if (client == null) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("No matching MongoDB connection found in cache. Creating: \"" + mongoURI.toString() + "\"");
+                }
                 if(!StringUtils.isNotBlank(connectionString)){
                 logger.debug("MongoDB connection for host:" + host + " port:" + port + " user:" + user
                     + " db:" + db + " does not exist, creating it... ");
@@ -78,9 +85,20 @@ public final class MongoDBConnectionLocator {
                     client.close();
                     client = temp;
                 }
+            } else {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Matching MongoDB connection retrieved from cache: \"" + mongoURI.toString() + "\"");
+                }
             }
+            
             if(test){//check the connection
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Testing MongoDB connection: \"" + mongoURI.toString() + "\"");
+                }
                 testConnection(uri, client,db);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Tested OK MongoDB connection: \"" + mongoURI.toString() + "\"");
+                }
             }
 
             return client;

@@ -25,18 +25,17 @@ import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
 
-import com.mongodb.MongoClientOptions;
-import org.apache.commons.lang.StringUtils;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.util.JSONParseException;
+import org.apache.commons.lang.StringUtils;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 
 public class MongoDBClient {
@@ -47,11 +46,16 @@ public class MongoDBClient {
 
     public MongoDBClient(String host, Integer port, String user, String password,
                          String dbName, String collectionName, String connectionString,
-                         Boolean test) throws Exception {
+                         boolean ssl, Boolean test) throws Exception {
 
-//        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        final MongoClientOptions.Builder optionsBuilder =
-                MongoClientOptions.builder()./*socketFactory(sslContext.getSocketFactory()).*/sslEnabled(true);
+
+        MongoClientOptions.Builder optionsBuilder = MongoClientOptions.builder();
+
+        if (ssl) {
+            final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, null, null);
+            optionsBuilder = optionsBuilder.socketFactory(sslContext.getSocketFactory()).sslEnabled(true);
+        }
 
         final String uri =
                 MongoDBConnectionLocator.buildConnectionURI(host, port, user, password, dbName, connectionString);
