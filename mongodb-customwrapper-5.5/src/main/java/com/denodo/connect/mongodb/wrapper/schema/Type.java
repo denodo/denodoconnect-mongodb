@@ -23,8 +23,6 @@ package com.denodo.connect.mongodb.wrapper.schema;
 
 import java.sql.Types;
 
-import org.bson.BsonTimestamp;
-
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 
 

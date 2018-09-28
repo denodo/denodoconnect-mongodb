@@ -1,4 +1,4 @@
-20180924
+20180928
 ========
 - Support TLS 1.2 in Java 7 environments like Denodo 6.
 

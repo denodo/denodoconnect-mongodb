@@ -55,8 +55,7 @@ public final class MongoDBConnectionLocator {
      * and returns it if exists. Otherwise creates a new MongoClient instance.
      * @throws Exception 
      */
-    public static MongoClient getConnection(String host, Integer port, String user, String password,
-                                            String db, String connectionString, String uri, MongoClientURI mongoURI, Boolean test) throws Exception {
+    public static MongoClient getConnection(MongoClientURI mongoURI, String database, boolean ssl, boolean test) throws Exception {
 
         try {
 
@@ -64,20 +63,17 @@ public final class MongoDBConnectionLocator {
                 logger.trace("Locating MongoDB connection for URI: \"" + mongoURI.toString() + "\"");
             }
 
-            MongoClient client = mongoCache.get(uri);
+            final String cacheKey = buildConnectionCacheKey(mongoURI, ssl);
+            // The cache key includes passwords, so it is not safe to use in logs
+            final String loggableURI = buildConnectionLoggableRepresentation(mongoURI, ssl);
+
+            MongoClient client = mongoCache.get(cacheKey);
             if (client == null) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("No matching MongoDB connection found in cache. Creating: \"" + mongoURI.toString() + "\"");
-                }
-                if(!StringUtils.isNotBlank(connectionString)){
-                logger.debug("MongoDB connection for host:" + host + " port:" + port + " user:" + user
-                    + " db:" + db + " does not exist, creating it... ");
-                }else{
-                    logger.debug("MongoDB connection with connection string: "+connectionString+" user:" + user
-                    + " does not exist, creating it... ");
+                    logger.trace("No matching MongoDB connection found in cache. Creating: \"" + loggableURI + "\"");
                 }
                 client = new MongoClient(mongoURI);
-                MongoClient temp = mongoCache.putIfAbsent(uri, client);
+                MongoClient temp = mongoCache.putIfAbsent(cacheKey, client);
                 if (temp != null) {
 
                     // lost the race condition, close new mongoclient and return the
@@ -87,17 +83,17 @@ public final class MongoDBConnectionLocator {
                 }
             } else {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Matching MongoDB connection retrieved from cache: \"" + mongoURI.toString() + "\"");
+                    logger.trace("Matching MongoDB connection retrieved from cache: \"" + loggableURI + "\"");
                 }
             }
-            
+
             if(test){//check the connection
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Testing MongoDB connection: \"" + mongoURI.toString() + "\"");
+                    logger.trace("Testing MongoDB connection: \"" + loggableURI + "\"");
                 }
-                testConnection(uri, client,db);
+                testConnection(cacheKey, client, database, loggableURI);
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Tested OK MongoDB connection: \"" + mongoURI.toString() + "\"");
+                    logger.trace("Tested OK MongoDB connection: \"" + loggableURI + "\"");
                 }
             }
 
@@ -110,6 +106,33 @@ public final class MongoDBConnectionLocator {
         }
         
     }
+
+
+    private static String buildConnectionCacheKey(MongoClientURI mongoURI, boolean ssl) {
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        if (ssl) {
+            stringBuilder.append("[SSL]");
+        }
+        stringBuilder.append(mongoURI.toString());
+        return stringBuilder.toString();
+
+    }
+
+    private static String buildConnectionLoggableRepresentation(MongoClientURI mongoURI, boolean ssl) {
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        if (ssl) {
+            stringBuilder.append("[SSL]");
+        }
+        // We don't user mongoURI.toString() in order to NOT include the password in the logs
+        stringBuilder.append(mongoURI.getHosts());
+        stringBuilder.append(":");
+        stringBuilder.append(mongoURI.getDatabase());
+        return stringBuilder.toString();
+
+    }
+
 
     /**
      * The format of the URI is:
@@ -142,20 +165,16 @@ public final class MongoDBConnectionLocator {
             }
             return uri.toString(); 
         }else{
-            boolean auth = false;
             StringBuilder uri = new StringBuilder(PREFIX);
 
             if (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(password)) {
                 uri.append(user).append(':').append(password).append('@');
-                auth = true;
             }
             uri.append((host != null) ? host : ServerAddress.defaultHost());
             uri.append(':');
             uri.append((port != null) ? port.intValue() : ServerAddress.defaultPort());
 
-            if (auth) {
-                uri.append('/').append(db);
-            }
+            uri.append('/').append(db);
             logger.debug("Connection uri: "+ uri.toString());
             return uri.toString();
         }
@@ -166,48 +185,48 @@ public final class MongoDBConnectionLocator {
      * is obtained from the pool only when a request (ie. an operation as find, insert, ...)
      * is sent to the database. So getDatabaseNames() is invoked to test for database connectivity.
      */
-    public static void testConnection(String uri, MongoClient client, String dbName) throws Exception {
+    public static void testConnection(String cacheKey, MongoClient client, String dbName, String loggableURI) throws Exception {
 
         try {
 
             MongoDatabase database = client.getDatabase(dbName);
-         
-          if(database.listCollections()==null || database.listCollections().first()==null){
-              clearConnection(uri, client);
-              logger.debug("Error connecting to database: '" +dbName + "' ");
+
+            if(database.listCollections()==null || database.listCollections().first()==null){
+              clearConnection(cacheKey, client);
+              logger.debug("Error connecting to database: '" +loggableURI + "' ");
               //  mongoClient.close();
-              throw new Exception("Error connecting to database: '" + dbName + "' " );  
-          }
-            
+              throw new Exception("Error connecting to database: '" + loggableURI + "' " );
+            }
+
             //MongoIterable<String> strings=client.listDatabaseNames();
-        } catch ( MongoSocketException e) {
-            logger.debug("Unable to establish connection",e);
-            clearConnection(uri, client);
-            throw new IOException("Unable to establish connection", e);
-        } catch (MongoCommandException e) {
-            if (e.getMessage().contains("auth fails")) {
-                clearConnection(uri, client);
-                throw new IOException("Authentication error: wrong user/password", e);
+            } catch ( MongoSocketException e) {
+                logger.debug("Unable to establish connection: " + loggableURI,e);
+                clearConnection(cacheKey, client);
+                throw new IOException("Unable to establish connection: " + loggableURI, e);
+            } catch (MongoCommandException e) {
+                if (e.getMessage().contains("auth fails")) {
+                    clearConnection(cacheKey, client);
+                    throw new IOException("Authentication error: wrong user/password: " + loggableURI, e);
+                }
+                // when user credentials were provided and the user do not have enough privileges
+                // the workaround to test the connection will fail but this exception will not be thrown
+                if (!e.getMessage().contains("unauthorized")) {
+                    clearConnection(cacheKey, client);
+                    throw e;
+                }
+            }catch (Exception e) {
+                clearConnection(cacheKey, client);
+                logger.debug("Unable to establish connection to: " + loggableURI,e);
+                throw new Exception("Unable to establish connection: " + loggableURI, e);
+
+
             }
-            // when user credentials were provided and the user do not have enough privileges
-            // the workaround to test the connection will fail but this exception will not be thrown
-            if (!e.getMessage().contains("unauthorized")) {
-                clearConnection(uri, client);
-                throw e;
-            }
-        }catch (Exception e) {
-            clearConnection(uri, client);
-            logger.debug("Unable to establish connection",e);
-            throw new Exception("Unable to establish connection", e);
-            
-          
-        }
 
     }
 
-    private static void clearConnection(String uri, MongoClient client) {
+    private static void clearConnection(String cacheKey, MongoClient client) {
         client.close();
-        mongoCache.remove(uri, client);
+        mongoCache.remove(cacheKey);
     }
 
 }

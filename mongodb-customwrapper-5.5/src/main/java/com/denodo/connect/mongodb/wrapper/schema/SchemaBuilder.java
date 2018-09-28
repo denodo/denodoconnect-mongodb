@@ -25,9 +25,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import org.bson.Document;
-
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
+import org.bson.Document;
 
 
 public class SchemaBuilder {
