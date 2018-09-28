@@ -59,13 +59,13 @@ public final class MongoDBConnectionLocator {
 
         try {
 
-            if (logger.isTraceEnabled()) {
-                logger.trace("Locating MongoDB connection for URI: \"" + mongoURI.toString() + "\"");
-            }
-
             final String cacheKey = buildConnectionCacheKey(mongoURI, ssl);
             // The cache key includes passwords, so it is not safe to use in logs
             final String loggableURI = buildConnectionLoggableRepresentation(mongoURI, ssl);
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Locating MongoDB connection for URI: \"" + loggableURI + "\"");
+            }
 
             MongoClient client = mongoCache.get(cacheKey);
             if (client == null) {
