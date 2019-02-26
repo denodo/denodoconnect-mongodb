@@ -24,7 +24,7 @@
         </fileSet>
         <fileSet>
             <directory>${basedir}/</directory>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <includes>
                 <include>README.txt</include>
                 <include>LICENSE.txt</include>
@@ -32,23 +32,17 @@
                 <include>RELEASE_NOTES.txt</include>
             </includes>
         </fileSet>
-        <fileSet>
-          <directory>${basedir}/doc/</directory>
-          <outputDirectory>/doc</outputDirectory>
-          <includes>
-            <include>**/*.pdf</include>
-          </includes>
-        </fileSet>
+        
     </fileSets>
 
 
     <dependencySets>
         <dependencySet>
-            <outputDirectory>/lib</outputDirectory>
+            <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
             <scope>runtime</scope>
 		    <excludes>
-        		<exclude>com.denodo.connect:denodo-mongodb-customwrapper-5.5</exclude>
+        		<exclude>com.denodo.connect:denodo-mongodb-customwrapper-7.0</exclude>
       		</excludes>
         </dependencySet>
     </dependencySets>
