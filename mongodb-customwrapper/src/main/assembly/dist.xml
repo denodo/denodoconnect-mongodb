@@ -30,6 +30,7 @@
                 <include>LICENSE.txt</include>
                 <include>NOTICE.txt</include>
                 <include>RELEASE_NOTES.txt</include>
+				<include>README_DOCS.txt</include>
             </includes>
         </fileSet>
       

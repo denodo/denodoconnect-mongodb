@@ -6,13 +6,14 @@
     <!-- *************************** -->
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
-    <artifactId>denodo-mongodb-customwrapper-6.0</artifactId>
+    <artifactId>denodo-mongodb-customwrapper-${denodo.version}</artifactId>
     <version>20180928</version>
     <packaging>jar</packaging>
-    <name>denodo-mongodb-customwrapper-6.0</name>
+    <name>${project.artifactId}</name>
 
 
     <properties>
+	  <denodo.version>6.0</denodo.version>
       <java.version>1.8</java.version>
       <errorprone.javac.version>9+181-r4173-1</errorprone.javac.version>
       <errorprone.core.version>2.3.2</errorprone.core.version>
