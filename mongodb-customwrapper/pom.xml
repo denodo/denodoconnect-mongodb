@@ -6,10 +6,10 @@
     <!-- *************************** -->
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.denodo.connect</groupId>
-    <artifactId>denodo-mongodb-customwrapper-7.0</artifactId>
+    <artifactId>denodo-mongodb-customwrapper-${denodo.version}</artifactId>
     <version>20180928</version>
     <packaging>jar</packaging>
-    <name>denodo-mongodb-customwrapper-7.0</name>
+    <name>${project.artifactId}</name>
 
 
     <properties>
