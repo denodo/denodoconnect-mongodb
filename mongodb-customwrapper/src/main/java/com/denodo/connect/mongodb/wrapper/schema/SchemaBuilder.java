@@ -50,12 +50,18 @@ public class SchemaBuilder {
     public void addToSchema(Document document) {
 
         for (String key : document.keySet()) {
+            boolean typeFound = false;
             Object field = document.get(key);
             if (field != null) {
                 Type fieldType = getFieldType(key, field);
-                if(fieldType!= null){
+                if (fieldType != null){
                     this.type.add(fieldType);
+                    typeFound = true;
                 }
+            }
+            if (!typeFound) {
+                // Types can be null, but they need to be added anyway
+                this.type.add(new SimpleType(key, DEFAULT_CLASS));
             }
         }
     }
