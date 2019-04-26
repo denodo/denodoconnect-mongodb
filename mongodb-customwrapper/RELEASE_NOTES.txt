@@ -1,6 +1,9 @@
-currentversion
+20190426
 =========
-- #42093 - Improve code quality tooling
+- Add #42093 - Improve code quality tooling
+- Fixed #42332 - MongoDB custom wrapper ignoring "Null" fields in schema inference
+- Fixed #42848 - MongoDB custom wrapper that avoids calling "listCollections"
+
 20180928
 ========
 - Support TLS 1.2 in Java 7 environments like Denodo 6.
