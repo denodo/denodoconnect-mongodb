@@ -30,6 +30,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoSecurityException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
@@ -55,7 +56,8 @@ public final class MongoDBConnectionLocator {
      * and returns it if exists. Otherwise creates a new MongoClient instance.
      * @throws Exception 
      */
-    public static MongoClient getConnection(MongoClientURI mongoURI, String database, boolean ssl, boolean test) throws Exception {
+    public static MongoClient getConnection(MongoClientURI mongoURI, String database, String collectionName,
+        boolean ssl, boolean test) throws Exception {
 
         try {
 
@@ -91,7 +93,7 @@ public final class MongoDBConnectionLocator {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Testing MongoDB connection: \"" + loggableURI + "\"");
                 }
-                testConnection(cacheKey, client, database, loggableURI);
+                testConnection(cacheKey, client, database, collectionName, loggableURI);
                 if (logger.isTraceEnabled()) {
                     logger.trace("Tested OK MongoDB connection: \"" + loggableURI + "\"");
                 }
@@ -183,45 +185,26 @@ public final class MongoDBConnectionLocator {
     /*
      * MongoClient constructor does not actually connect to the server: a connection
      * is obtained from the pool only when a request (ie. an operation as find, insert, ...)
-     * is sent to the database. So getDatabaseNames() is invoked to test for database connectivity.
+     * is sent to the database. So countDocuments() is invoked to test for database connectivity.
      */
-    public static void testConnection(String cacheKey, MongoClient client, String dbName, String loggableURI) throws Exception {
+    public static void testConnection(String cacheKey, MongoClient client, String dbName,String collectionName,
+        String loggableURI) throws Exception {
 
+        String defaultError = "Unable to establish connection with database and collection: " + loggableURI
+            + ", " + collectionName;
         try {
-
-            MongoDatabase database = client.getDatabase(dbName);
-
-            if(database.listCollections()==null || database.listCollections().first()==null){
-              clearConnection(cacheKey, client);
-              logger.debug("Error connecting to database: '" +loggableURI + "' ");
-              //  mongoClient.close();
-              throw new Exception("Error connecting to database: '" + loggableURI + "' " );
-            }
-
-            //MongoIterable<String> strings=client.listDatabaseNames();
-            } catch ( MongoSocketException e) {
-                logger.debug("Unable to establish connection: " + loggableURI,e);
+            // Note that a user may not have permissions over all collections in the DB, so we
+            // need to validate directly over the specified collection
+            client.getDatabase(dbName).getCollection(collectionName).countDocuments();
+            } catch ( MongoSocketException | MongoCommandException | MongoSecurityException e) {
+                logger.debug(defaultError,e);
                 clearConnection(cacheKey, client);
-                throw new IOException("Unable to establish connection: " + loggableURI, e);
-            } catch (MongoCommandException e) {
-                if (e.getMessage().contains("auth fails")) {
-                    clearConnection(cacheKey, client);
-                    throw new IOException("Authentication error: wrong user/password: " + loggableURI, e);
-                }
-                // when user credentials were provided and the user do not have enough privileges
-                // the workaround to test the connection will fail but this exception will not be thrown
-                if (!e.getMessage().contains("unauthorized")) {
-                    clearConnection(cacheKey, client);
-                    throw e;
-                }
-            }catch (Exception e) {
+                throw new IOException(defaultError, e);
+            } catch (Exception e) {
                 clearConnection(cacheKey, client);
-                logger.debug("Unable to establish connection to: " + loggableURI,e);
-                throw new Exception("Unable to establish connection: " + loggableURI, e);
-
-
+                logger.debug(defaultError, e);
+                throw new Exception(defaultError, e);
             }
-
     }
 
     private static void clearConnection(String cacheKey, MongoClient client) {
