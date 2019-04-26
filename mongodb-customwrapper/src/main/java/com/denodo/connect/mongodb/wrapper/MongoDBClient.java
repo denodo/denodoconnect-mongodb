@@ -89,14 +89,10 @@ public class MongoDBClient {
             throw new IllegalArgumentException("Database is mandatory in the Connection parameters");
         }
 
-        this.mongoClient = MongoDBConnectionLocator.getConnection(mongoURI, databaseName, useSSL, test);
-
+        this.mongoClient = MongoDBConnectionLocator.getConnection(mongoURI, databaseName, collectionName, useSSL, test);
 
         MongoDatabase db = getMongoClient().getDatabase(databaseName);
 
-        if(test){
-            checkCollection(db, collectionName);
-        }
         this.collection = db.getCollection(collectionName);
         
     }
@@ -123,21 +119,6 @@ public class MongoDBClient {
 
     }
 
-
-    private static void checkCollection(final MongoDatabase db, final String collectionName) throws IOException {
-        
-        MongoIterable<String> collectionNames = db.listCollectionNames();
-        boolean existCollection= false;
-        for (final String name : collectionNames) {
-            if (name.equalsIgnoreCase(collectionName)) {
-                existCollection=true;
-                break;
-            }
-        }
-        if (!existCollection) {
-            throw new IOException("Unknown collection: '" + collectionName + "'");
-        }
-    }
     
     public MongoCollection<Document> getCollection() {
         return this.collection;
