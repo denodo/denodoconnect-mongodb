@@ -1,5 +1,10 @@
+20190513
+========
+- Fixed #41710 - Integrate #40632 into MongoDB wrapper (Add support for
+                 connection parameters in Custom data sources).
+
 20190426
-=========
+========
 - Add #42093 - Improve code quality tooling
 - Fixed #42332 - MongoDB custom wrapper ignoring "Null" fields in schema inference
 - Fixed #42848 - MongoDB custom wrapper that avoids calling "listCollections"
