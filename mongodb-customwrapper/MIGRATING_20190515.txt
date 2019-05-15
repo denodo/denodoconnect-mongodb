@@ -1,7 +1,7 @@
-MIGRATING TO VERSION 20190513 OF THE MONGODB CUSTOM WRAPPER
+MIGRATING TO VERSION 20190515 OF THE MONGODB CUSTOM WRAPPER
 ===========================================================
 
-Version 20190513 of the MongoDB Custom Wrapper includes adaptations required
+Version 20190515 of the MongoDB Custom Wrapper includes adaptations required
 for making use of a new feature in VDP that allows configuration parameters
 in Custom Wrappers to be separated between the Data Source and the Wrapper
 (Base View) levels.
