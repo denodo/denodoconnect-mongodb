@@ -84,3 +84,55 @@ checked at the "VQL" section of the base views, additionally checking the
 "Show Dependencies" option in order to compare the base view's and data
 source's metadata structures.
 
+
+### SOLUTION MANAGER ###
+
+As the management of the properties of the MongoDB Custom Wrapper has changed,
+there are some considerations to keep in mind in order to maintain old data
+sources and base views working. Note that for elements created after installing
+this new version of the custom wrapper, no further considerations need to
+be taken into account as they will work as usual.
+
+Now, for older elements and once the previous steps explained in this
+manual are completed, Virtual DataPort properties need to be restructured
+because in the older versions all of them were at base view level and now most
+of them will be at the data source level.
+
+This situation will be explained with an example where we have a Development
+environment as origin and a Test environment as target.
+
+# Step 1: Export new properties from VDP
+
+From the VDP Admin Tool, we have to export the properties. Right click on the
+database and select the "Export..." option. Then, we need to make sure that we
+have the "Export environment specific properties separately" checked and export
+the elements. This will generate a .vql file and a .properties file.
+
+# Step 2: Import properties in the Solution Manager
+
+Assuming that the .properties file generated in the previous step contains the
+parameters used in the Development environment, we can access this environment
+in the Solution Manager and replace the old properties. Just for safety
+reasons, the old ones should be exported before importing the new ones.
+
+Once we've done this backup, delete all the properties related with this
+elements and import the generated .properties file. Now, we will have separated
+data-source-level parameters and base-view-level parameters.
+
+# Step 3: Adapt the target environment with the new properties
+
+Now, before we can deploy any revisions from the Development to the Test
+environment (or whatever the target environment is), we will have to adapt the
+properties of the Test environment. As before, we can do a backup of the
+properties by clicking on the export option just for security.
+
+Now we need, once again, the properties generated in step #1. We may want
+to use a text editor to do the replacements in property values according
+to the needs of the target environment. Once we have modified the properties
+file, we can now import these new properties. As we may have done a backup
+of the old properties, for clarity purposes, we may want to delete first
+these old properties and then import the new file. Other choice would be
+importing the new file and, after checking that everything still works,
+removing the old properties. Note that these removals are intended in order
+to avoid keeping properties that are no longer useful for the Custom Wrapper,
+but removals are not mandatory.
