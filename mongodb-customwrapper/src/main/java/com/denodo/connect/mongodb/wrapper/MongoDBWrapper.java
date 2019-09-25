@@ -123,7 +123,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     }
 
     @Override
-    public CustomWrapperInputParameter[] getDSInputParameters() {
+    public CustomWrapperInputParameter[] getDataSourceInputParameters() {
         return new CustomWrapperInputParameter[] {
             new CustomWrapperInputParameter(HOST, "Name of the computer or IP address where MongoDB is running ",
                 false, true, CustomWrapperInputParameterTypeFactory.stringType()),
