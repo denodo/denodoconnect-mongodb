@@ -1,0 +1,138 @@
+MIGRATING TO VERSION 20190515 OF THE MONGODB CUSTOM WRAPPER
+===========================================================
+
+Version 20190515 of the MongoDB Custom Wrapper includes adaptations required
+for making use of a new feature in VDP that allows configuration parameters
+in Custom Wrappers to be separated between the Data Source and the Wrapper
+(Base View) levels.
+
+We recommend fully reading this document before taking any steps, in order to
+make sure the required migration process is completely understood. We also
+recommend that this migration process be always done in development/staging
+servers, and only the successful results of the migration process be pushed
+to production.
+
+This new version of the MongoDB wrapper divides configuration parameters in a
+way that most closely resembles the configuration of JDBC data sources and
+base views:
+
+   * MongoDB server and database connectivity parameters (host, port,
+     database, credentials, SSL...) are now configured at the Data Source
+     level.
+
+   * MongoDB collection and schema specification remain at the Wrapper
+     (Base View) level.
+
+This new version should be installed into VDP in the usual way (using
+Extensions -> Jar Management). Once installed, all existing base views should
+continue working as before as long as no modifications are made to them.
+
+But note that mere installation of the new version of the wrapper does not
+modify the structure of the underlying metadata, and therefore no distinction
+will be applied to metadata between Data Source and Wrapper parameters until
+metadata is restructured by explicitly updating the existing MongoDB data
+sources and base views.
+
+# Step 1: Verifying Data Source - Base View relationships
+
+The first step required for the migration of metadata is to verify that only
+base views that connect to the same MongoDB server and database, and using
+the same credentials, are actually linked to a single data source artifact in
+VDP. So all base views depending on the same MongoDB VDP data source should
+have a configuration that only differs in their "Collection Name" and the
+specification of their schema ("Fields" / "Introspection Query"). This is a
+requirement due to the new structure of the configuration parameters in the
+wrapper.
+
+Note that if this condition is not verified, making the necessary corrections
+in the hierarchy of VDP artifacts would require the creation of new, segregated
+data sources and the re-creation of base views associated to them. And given
+these new artifacts would be registered already using the new configuration
+structure if done through the graphical interface, there might be no need for
+actually migrating the reorganized artifacts.
+
+# Step 2: Migrating the Data Source metadata
+
+Focusing therefore on the artifacts that aren't affected by any data source
+segregation needs, we need to edit the Data Source first. When opening it,
+we will be presented with a new empty form containing the fields for
+configuring the host name, port, database name, credentials and use of SSL.
+We should fill in this form with the MongoDB connection data already
+present in the depending base views (which you can still see if you go
+to any of those base views and click on "VQL" -- note credentials will
+not be shown). Once the form is completed, press "Save".
+
+# Step 3: Migrating the Base Views metadata
+
+Once the MongoDB data source has been configured, we need to iterate through
+all the base views depending on that data source and edit them ("Edit" ->
+"Source Refresh"), making sure the new configuration form contains the correct
+collection and schema data (previous values will be pre-filled) and saving the
+base view by clicking "OK" on the form and then "Save" on the base view
+configuration tab.
+
+NOTE that, if any of the base views is configured to use an introspection query
+(as opposed to a schema explicitly declared in the "Fields" form field), the
+introspection query will run again and the base views's resulting schema could
+differ from the original if the structure or types of the data contained in the
+target MongoDB collection have changed in ways that still match the
+introspection query.
+
+After performing these steps, the VDP metadata corresponding to all MongoDB
+data sources and base views should have the proper structure, which can be
+checked at the "VQL" section of the base views, additionally checking the
+"Show Dependencies" option in order to compare the base view's and data
+source's metadata structures.
+
+
+### SOLUTION MANAGER ###
+
+As the management of the properties of the MongoDB Custom Wrapper has changed,
+there are some considerations to keep in mind in order to maintain old data
+sources and base views working. Note that for elements created after installing
+this new version of the custom wrapper, no further considerations need to
+be taken into account as they will work as usual.
+
+Now, for older elements and once the previous steps explained in this
+manual are completed, Virtual DataPort properties need to be restructured
+because in the older versions all of them were at base view level and now most
+of them will be at the data source level.
+
+This situation will be explained with an example where we have a Development
+environment as origin and a Test environment as target.
+
+# Step 1: Export new properties from VDP
+
+From the VDP Admin Tool, we have to export the properties. Right click on the
+database and select the "Export..." option. Then, we need to make sure that we
+have the "Export environment specific properties separately" checked and export
+the elements. This will generate a .vql file and a .properties file.
+
+# Step 2: Import properties in the Solution Manager
+
+Assuming that the .properties file generated in the previous step contains the
+parameters used in the Development environment, we can access this environment
+in the Solution Manager and replace the old properties. Just for safety
+reasons, the old ones should be exported before importing the new ones.
+
+Once we've done this backup, delete all the properties related with this
+elements and import the generated .properties file. Now, we will have separated
+data-source-level parameters and base-view-level parameters.
+
+# Step 3: Adapt the target environment with the new properties
+
+Now, before we can deploy any revisions from the Development to the Test
+environment (or whatever the target environment is), we will have to adapt the
+properties of the Test environment. As before, we can do a backup of the
+properties by clicking on the export option just for security.
+
+Now we need, once again, the properties generated in step #1. We may want
+to use a text editor to do the replacements in property values according
+to the needs of the target environment. Once we have modified the properties
+file, we can now import these new properties. As we may have done a backup
+of the old properties, for clarity purposes, we may want to delete first
+these old properties and then import the new file. Other choice would be
+importing the new file and, after checking that everything still works,
+removing the old properties. Note that these removals are intended in order
+to avoid keeping properties that are no longer useful for the Custom Wrapper,
+but removals are not mandatory.

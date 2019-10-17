@@ -31,6 +31,7 @@
                 <include>NOTICE.txt</include>
                 <include>RELEASE_NOTES.txt</include>
 				<include>README_DOCS.txt</include>
+                <include>MIGRATING_20190513.txt</include>
             </includes>
         </fileSet>
         

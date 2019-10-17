@@ -109,34 +109,40 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
     @Override
     public CustomWrapperInputParameter[] getInputParameters() {
         return new CustomWrapperInputParameter[] {
-                new CustomWrapperInputParameter(HOST, "Name of the computer or IP address where MongoDB is running ",
-                        false, CustomWrapperInputParameterTypeFactory.stringType()),
-                new CustomWrapperInputParameter(PORT, "Port number to connect to MongoDB, default is 27017 ",
-                        false, CustomWrapperInputParameterTypeFactory.integerType()),
-                new CustomWrapperInputParameter(USER, "Username to connect to MongoDB, if authentication enabled ",
-                        false, CustomWrapperInputParameterTypeFactory.loginType()),
-                new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
-                        false, CustomWrapperInputParameterTypeFactory.passwordType()),
-                new CustomWrapperInputParameter(DATABASE, "Database name ",
-                        false, CustomWrapperInputParameterTypeFactory.stringType()),
                 new CustomWrapperInputParameter(COLLECTION, "Collection name ",
-                        true, CustomWrapperInputParameterTypeFactory.stringType()),
-                new CustomWrapperInputParameter(
-                                CONNECTION_STRING,
-                                "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/database[?options] \n"                                
-                                + "This parameter is an alternative to put database, host and port parameters  ",
-                                false, CustomWrapperInputParameterTypeFactory.stringType()),
-                new CustomWrapperInputParameter(
-                        USE_SSL, "The MongoDB server requires SSL/TLS connectivity",
-                        false, CustomWrapperInputParameterTypeFactory.booleanType(false)),
+                        true, true, CustomWrapperInputParameterTypeFactory.stringType()),
                 new CustomWrapperInputParameter(
                         FIELDS,
                         "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
-                        false, CustomWrapperInputParameterTypeFactory.longStringType()),
+                        false, true, CustomWrapperInputParameterTypeFactory.longStringType()),
                 new CustomWrapperInputParameter(
                         INTROSPECTION_QUERY,
                         "Documents retrieved by this query will be analyzed to reveal their fields and build the view schema. An empty query selects all documents in the collection ",
-                        false, CustomWrapperInputParameterTypeFactory.longStringType())
+                        false, true, CustomWrapperInputParameterTypeFactory.longStringType())
+        };
+    }
+
+    @Override
+    public CustomWrapperInputParameter[] getDataSourceInputParameters() {
+        return new CustomWrapperInputParameter[] {
+            new CustomWrapperInputParameter(HOST, "Name of the computer or IP address where MongoDB is running ",
+                false, true, CustomWrapperInputParameterTypeFactory.stringType()),
+            new CustomWrapperInputParameter(PORT, "Port number to connect to MongoDB, default is 27017 ",
+                false, true, CustomWrapperInputParameterTypeFactory.integerType()),
+            new CustomWrapperInputParameter(USER, "Username to connect to MongoDB, if authentication enabled ",
+                false, true, CustomWrapperInputParameterTypeFactory.loginType()),
+            new CustomWrapperInputParameter(PASSWORD, "Password associated with the username ",
+                false, true, CustomWrapperInputParameterTypeFactory.passwordType()),
+            new CustomWrapperInputParameter(DATABASE, "Database name ",
+                false, true, CustomWrapperInputParameterTypeFactory.stringType()),
+            new CustomWrapperInputParameter(
+                CONNECTION_STRING,
+                "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]]/database[?options] \n"
+                    + "This parameter is an alternative to put database, host and port parameters  ",
+                false, true, CustomWrapperInputParameterTypeFactory.stringType()),
+            new CustomWrapperInputParameter(
+                USE_SSL, "The MongoDB server requires SSL/TLS connectivity",
+                false,true, CustomWrapperInputParameterTypeFactory.booleanType(false))
         };
     }
 
@@ -217,7 +223,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                 throw new IllegalArgumentException(errorMsg);
             }
          }else if(!StringUtils.isNotBlank(dbName)){
-             final String errorMsg = "Connection string parameter ou Database paramater is mandatory ";
+             final String errorMsg = "Connection string parameter or Database paramater is mandatory ";
              logger.info(errorMsg);
              throw new IllegalArgumentException(errorMsg);
          }
