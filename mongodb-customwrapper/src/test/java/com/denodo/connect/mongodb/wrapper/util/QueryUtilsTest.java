@@ -137,7 +137,7 @@ public class QueryUtilsTest {
             buildSimpleCondition("status", OPERATOR_EQ, Types.VARCHAR, "A");
 
         Document query = (Document)QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"status\" : \"A\" }", query.toJson());
+        Assert.assertEquals("{\"status\": \"A\"}", query.toJson());
     }
 
 
@@ -151,7 +151,7 @@ public class QueryUtilsTest {
             buildSimpleCondition("status", OPERATOR_NE, Types.VARCHAR, "A");
 
         Document query = (Document) QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"status\" : { \"$ne\" : \"A\" } }", query.toJson());
+        Assert.assertEquals("{\"status\": {\"$ne\": \"A\"}}", query.toJson());
     }
 
     /*
@@ -164,7 +164,7 @@ public class QueryUtilsTest {
             buildSimpleCondition("age", OPERATOR_GT, Types.NUMERIC, Integer.valueOf(25));
 
         Document query = (Document) QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"age\" : { \"$gt\" : 25 } }", query.toJson());
+        Assert.assertEquals("{\"age\": {\"$gt\": 25}}", query.toJson());
     }
 
     /*
@@ -178,7 +178,7 @@ public class QueryUtilsTest {
 
 
         Document query = (Document) QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"age\" : { \"$gte\" : 25 } }", query.toJson());
+        Assert.assertEquals("{\"age\": {\"$gte\": 25}}", query.toJson());
     }
 
     /*
@@ -191,7 +191,7 @@ public class QueryUtilsTest {
             buildSimpleCondition("age", OPERATOR_LT, Types.NUMERIC, Integer.valueOf(25));
 
         Document query = (Document) QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"age\" : { \"$lt\" : 25 } }", query.toJson());
+        Assert.assertEquals("{\"age\": {\"$lt\": 25}}", query.toJson());
     }
 
     /*
@@ -205,7 +205,7 @@ public class QueryUtilsTest {
 
 
         Document query = (Document) QueryUtils.buildQuery(null, simpleCondition);
-        Assert.assertEquals("{ \"age\" : { \"$lte\" : 25 } }", query.toJson());
+        Assert.assertEquals("{\"age\": {\"$lte\": 25}}", query.toJson());
     }
 
     /*
@@ -223,23 +223,23 @@ public class QueryUtilsTest {
 
 
         Document query = (Document) QueryUtils.buildQuery(null ,simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^.*bc.*$\" } }", query.toJson());
+        Assert.assertEquals("{\"user_id\": {\"$regex\": \"^.*bc.*$\"}}", query.toJson());
 
         simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b$c");
         query = (Document) QueryUtils.buildQuery(null ,simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\$c$\" } }", query.toJson());
+        Assert.assertEquals("{\"user_id\": {\"$regex\": \"^b\\\\$c$\"}}", query.toJson());
 
         simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b^c");
         query = (Document) QueryUtils.buildQuery(null ,simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\^c$\" } }", query.toJson());
+        Assert.assertEquals("{\"user_id\": {\"$regex\": \"^b\\\\^c$\"}}", query.toJson());
 
         simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b.c");
         query = (Document) QueryUtils.buildQuery(null ,simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\.c$\" } }", query.toJson());
+        Assert.assertEquals("{\"user_id\": {\"$regex\": \"^b\\\\.c$\"}}", query.toJson());
 
         simpleCondition = buildSimpleCondition("user_id", OPERATOR_LIKE, Types.VARCHAR, "b.*c");
         query = (Document) QueryUtils.buildQuery(null ,simpleCondition);
-        Assert.assertEquals("{ \"user_id\" : { \"$regex\" : \"^b\\\\.\\\\*c$\" } }", query.toJson());
+        Assert.assertEquals("{\"user_id\": {\"$regex\": \"^b\\\\.\\\\*c$\"}}", query.toJson());
     }
 
     /*
@@ -255,12 +255,12 @@ public class QueryUtilsTest {
 
         CustomWrapperAndCondition andCondition = buildANDCondition(firstCondition, secondCondition);
 
-      Bson query = QueryUtils.buildQuery(null ,andCondition);
-      BsonDocument bsonDocument = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
-      String expected= ("{ \"status\" : \"A\",\"age\" : { \"$lte\" : 25} }").trim();
-      expected = expected.replaceAll("\\s+","");
-      String actual =bsonDocument.toJson();
-      actual = actual.replaceAll("\\s+","");
+        Bson query = QueryUtils.buildQuery(null ,andCondition);
+        BsonDocument bsonDocument = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+        String expected= ("{ \"status\" : \"A\",\"age\" : { \"$lte\" : 25} }").trim();
+        expected = expected.replaceAll("\\s+","");
+        String actual =bsonDocument.toJson();
+        actual = actual.replaceAll("\\s+","");
         Assert.assertEquals(expected,
             actual);
     }
@@ -286,7 +286,7 @@ public class QueryUtilsTest {
         String actual =bsonDocument.toJson();
         actual = actual.replaceAll("\\s+","");
         Assert.assertEquals(expected,
-                actual);
+            actual);
     }
 
     /*
@@ -316,7 +316,7 @@ public class QueryUtilsTest {
         String actual =bsonDocument.toJson();
         actual = actual.replaceAll("\\s+","");
         Assert.assertEquals(expected,
-                actual);
+            actual);
     }
 
     /*
@@ -346,7 +346,7 @@ public class QueryUtilsTest {
         String actual =bsonDocument.toJson();
         actual = actual.replaceAll("\\s+","");
         Assert.assertEquals(expected,
-                actual);
+            actual);
     }
 
     /*
@@ -362,13 +362,13 @@ public class QueryUtilsTest {
 
         Bson query = QueryUtils.buildQuery(null, simpleCondition);
         BsonDocument bsonDocument = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
-        Assert.assertEquals("{ \"phoneNumbers.type\" : { \"$ne\" : \"home\" } }", bsonDocument.toJson());
+        Assert.assertEquals("{\"phoneNumbers.type\": {\"$ne\": \"home\"}}", bsonDocument.toJson());
 
         simpleCondition = buildSimpleConditionCompoundField("ban_friends_id", Arrays.asList("ban_friends_id_ITEM"),
             OPERATOR_NE, Types.VARCHAR, "BAN123");
         query = QueryUtils.buildQuery(null, simpleCondition);
         bsonDocument = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
-        Assert.assertEquals("{ \"ban_friends_id\" : { \"$ne\" : \"BAN123\" } }", bsonDocument.toJson());
+        Assert.assertEquals("{\"ban_friends_id\": {\"$ne\": \"BAN123\"}}", bsonDocument.toJson());
     }
 
     /*
@@ -383,7 +383,7 @@ public class QueryUtilsTest {
 
         Bson  query = QueryUtils.buildQuery(null, simpleCondition);
         BsonDocument bsonDocument = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
-        Assert.assertEquals("{ \"_id\" : \"5\" }", bsonDocument.toJson());
+        Assert.assertEquals("{\"_id\": \"5\"}", bsonDocument.toJson());
 
         simpleCondition =
             buildSimpleCondition("_id", OPERATOR_EQ, Types.VARCHAR, "508dec9f5a5c6fa3c8cde08b");
