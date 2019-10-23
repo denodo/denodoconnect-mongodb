@@ -20,6 +20,17 @@
  */
 package com.denodo.connect.mongodb.wrapper;
 
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
+import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
+
 import java.lang.reflect.Field;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -28,6 +39,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import com.denodo.connect.mongodb.wrapper.schema.SchemaBuilder;
 import com.denodo.connect.mongodb.wrapper.util.DocumentUtils;
@@ -43,27 +60,12 @@ import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import com.denodo.vdb.engine.customwrapper.condition.CustomWrapperConditionHolder;
 import com.denodo.vdb.engine.customwrapper.expression.CustomWrapperFieldExpression;
 import com.denodo.vdb.engine.customwrapper.input.type.CustomWrapperInputParameterTypeFactory;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.bson.BsonDocument;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_EQ;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_GT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_IN;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNOTNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_ISNULL;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LIKE;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_LT;
-import static com.denodo.vdb.engine.customwrapper.condition.CustomWrapperCondition.OPERATOR_NE;
 
 public class MongoDBWrapper extends AbstractCustomWrapper {
 
@@ -206,6 +208,8 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
     private static void checkInput(final Map<String, String> inputValues) {
 
+        final StringBuilder errors = new StringBuilder();
+
         final String user = inputValues.get(USER);
         final String password = inputValues.get(PASSWORD);
         final String host = inputValues.get(HOST);
@@ -213,21 +217,29 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String dbName = inputValues.get(DATABASE);
         final String connectionString = inputValues.get(CONNECTION_STRING);
 
-        if (StringUtils.isNotBlank(user) && StringUtils.isBlank(password)) {
-            throw new IllegalArgumentException(PASSWORD + " is missing.");
-        }
-        if(StringUtils.isNotBlank(connectionString)){
-            if(StringUtils.isNotBlank(dbName)||StringUtils.isNotBlank(host)||StringUtils.isNotBlank(portAsString)){
-                final String errorMsg = "You cannot specify at the same time connection string parameter or database, host and port parameters";
-                logger.info(errorMsg);
-                throw new IllegalArgumentException(errorMsg);
+        if (StringUtils.isNotBlank(connectionString)) {
+            // Connection string pattern:
+            //   mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
+            final MongoClientURI mongoClientURI = new MongoClientURI(connectionString);
+            if ((StringUtils.isNotBlank(dbName) && StringUtils.isNotBlank(mongoClientURI.getDatabase()))
+                    || (StringUtils.isNotBlank(user) && StringUtils.isNotBlank(mongoClientURI.getUsername()))
+                    || (StringUtils.isNotBlank(password) && mongoClientURI.getPassword() != null)) {
+                errors.append("Database, User or Password can't be set both in Connection String and in input parameters. ");
             }
-         }else if(!StringUtils.isNotBlank(dbName)){
-             final String errorMsg = "Connection string parameter or Database paramater is mandatory ";
-             logger.info(errorMsg);
-             throw new IllegalArgumentException(errorMsg);
-         }
-       
+            if (StringUtils.isNotBlank(mongoClientURI.getUsername()) && mongoClientURI.getPassword() == null) {
+                errors.append("Password is missing. ");
+            }
+        } else if (StringUtils.isBlank(dbName) || StringUtils.isBlank(host) || StringUtils.isBlank(portAsString)) {
+            errors.append("Connection string parameter or Database parameter is mandatory. ");
+        } else if (StringUtils.isNotBlank(user) && StringUtils.isBlank(password)) {
+            errors.append("Password is missing. ");
+        }
+
+        if (StringUtils.isNotBlank(errors.toString())) {
+            logger.trace(errors.toString());
+            throw new IllegalArgumentException(errors.toString());
+        }
+
     }
 
     /*

@@ -84,8 +84,9 @@ public class MongoDBClient {
 
         final MongoClientURI mongoURI = new MongoClientURI(uri, optionsBuilder);
 
-        final String databaseName = mongoURI.getDatabase();
-        if(databaseName==null){
+        final String databaseName = mongoURI.getDatabase() != null ? mongoURI.getDatabase() : dbName;
+
+        if (databaseName == null){
             throw new IllegalArgumentException("Database is mandatory in the Connection parameters");
         }
 
