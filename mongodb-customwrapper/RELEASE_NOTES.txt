@@ -1,3 +1,12 @@
+20191024
+========
+- Add #40091 - Feature to enable environmental properties while exporting mongodb custom wrapper base views
+- Add #45405 - Update MongoDB Java Driver to 3.11.1
+- Fixed #44422 - Validate the testing connection method with the MongoDB API version used
+- Fixed #45099 - Clarify usage of the Field Types in Mongod DB Custom Wrapper Documentation
+- Fixed #44506 - Add information regarding Connectivity Ports and SSL certificate in the
+                 MongoDB Custom Wrapper User Manual
+
 20190515
 ========
 - Fixed #41710 - Integrate #40632 into MongoDB wrapper (Add support for
