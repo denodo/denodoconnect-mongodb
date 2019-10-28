@@ -1,5 +1,6 @@
-20191024
+20191028
 ========
+- Add #41710 - Separate between DataSource and Base View (wrapper) configuration items
 - Add #40091 - Feature to enable environmental properties while exporting mongodb custom wrapper base views
 - Add #45405 - Update MongoDB Java Driver to 3.11.1
 - Fixed #44422 - Validate the testing connection method with the MongoDB API version used
