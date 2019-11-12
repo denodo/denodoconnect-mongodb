@@ -1,10 +1,10 @@
 MIGRATING CUSTOM WRAPPERS TO VERSIONS INCLUDING DATASOURCE-LEVEL CONFIGURATION
 ==============================================================================
 
-Recent improvements in the custom wrapper API in Virtual DataPort allow for
-the use of a recently added feature in the VDP engine that allows configuration
-parameters in Custom Wrapper to be separated between the Data Source and the
-Wrapper (Base View) levels.
+Recent improvements in the custom wrapper API in Virtual DataPort 7.0 update
+20190903 allow for the use of a recently added feature in the VDP engine that
+allows configuration parameters in Custom Wrapper to be separated between the
+Data Source and the Wrapper (Base View) levels.
 
 We recommend fully reading this document before taking any steps, in order to
 make sure that the required migration process is completely understood. We also
@@ -26,7 +26,7 @@ resembles the configuration of JDBC data sources and base views:
 
 When migrating from a version of the custom wrapper that does not divide its
 configuration in this way, the new wrapper version should be installed into
-VDP in the usual way (using Extensions -> Jar Management).
+VDP in the usual way (using Extensions -> Extension Management).
 
 Once installed, all existing base views should continue working as before
 while no modifications are made to them.
@@ -50,10 +50,17 @@ views depending on the same data source configuration should have a
 configuration that only differs in their base-view-level configuration
 parameters (table, collection, etc.).
 
+Note that, in order to perform this verification, once the wrapper is
+installed --and due to the change in the structure of the base views'
+configuration-- you will need to use the views' "VQL" details window
+label in order to check all the previous view configuration parameter
+values. This window will not show credentials in plain.
+
 So base views that do not share a common set of data-source-level
 configuration parameters will require the creation of new data source
 artifacts in VDP, and the re-creation of those base views linked to these
-new data sources.
+new data sources. There will be no migration possible for those structures,
+but rather a re-creation.
 
 
 # Step 2: Migrating the Data Source metadata
@@ -66,9 +73,9 @@ Once the editor is open, admins will be presented with a form including
 empty-valued fields for all the data-source-level configuration arguments
 (host, port, credentials...). These fields should be filled in with the
 same values that would have been in use until that moment for those same
-configuration items but at the base-view-level (and which once the new
-wrapper is installed will only be accessible --excluding credentials--
-at the base views' "VQL" details window label).
+configuration items but at the base-view-level (and which, as explained
+above, are now only accessible at the base views' "VQL" details window
+label).
 
 Once the form is completed, pressing "Save" will write the new data source
 metadata, now with the correct structure.
@@ -105,7 +112,7 @@ managed from the Denodo Solution Manager, some additional steps
 need to be taken in order to properly migrate the updates in metadata
 structures across the environments.
 
-Theese steps will be explained based on an example where we have a
+These steps will be explained based on an example where we have a
 Development environment as origin and a Test environment as target.
 
 # Step 1: Export new properties from VDP
