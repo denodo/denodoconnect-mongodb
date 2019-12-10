@@ -93,7 +93,12 @@ public final class MongoDBConnectionLocator {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Testing MongoDB connection: \"" + loggableURI + "\"");
                 }
+                long start = System.nanoTime();
                 testConnection(cacheKey, client, database, collectionName, loggableURI);
+                long end = System.nanoTime();
+                double seconds = (end - start) / 1000000000.0;
+                logger.trace("Time elapsed with testConnection(): \t " + seconds + " seconds.");
+
                 if (logger.isTraceEnabled()) {
                     logger.trace("Tested OK MongoDB connection: \"" + loggableURI + "\"");
                 }
@@ -185,7 +190,7 @@ public final class MongoDBConnectionLocator {
     /*
      * MongoClient constructor does not actually connect to the server: a connection
      * is obtained from the pool only when a request (ie. an operation as find, insert, ...)
-     * is sent to the database. So countDocuments() is invoked to test for database connectivity.
+     * is sent to the database. So estimatedDocumentCount() is invoked to test for database connectivity.
      */
     public static void testConnection(String cacheKey, MongoClient client, String dbName,String collectionName,
         String loggableURI) throws Exception {
@@ -195,7 +200,7 @@ public final class MongoDBConnectionLocator {
         try {
             // Note that a user may not have permissions over all collections in the DB, so we
             // need to validate directly over the specified collection
-            client.getDatabase(dbName).getCollection(collectionName).countDocuments();
+            client.getDatabase(dbName).getCollection(collectionName).estimatedDocumentCount();
             } catch ( MongoSocketException | MongoCommandException | MongoSecurityException e) {
                 logger.debug(defaultError,e);
                 clearConnection(cacheKey, client);
