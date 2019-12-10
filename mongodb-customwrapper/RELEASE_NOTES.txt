@@ -1,3 +1,7 @@
+20191210
+========
+- Fixed #46322 - Use estimatedDocumentCount() instead of countDocuments()
+
 20191112
 ========
 - Add #45405 - Update MongoDB Java Driver to 3.11.1
