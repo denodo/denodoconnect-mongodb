@@ -92,6 +92,11 @@ public class MongoDBClient {
 
         this.mongoClient = MongoDBConnectionLocator.getConnection(mongoURI, databaseName, collectionName, useSSL, test);
 
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Mongo Client: " + this.mongoClient.toString());
+        }
+
         MongoDatabase db = getMongoClient().getDatabase(databaseName);
 
         this.collection = db.getCollection(collectionName);

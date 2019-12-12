@@ -270,6 +270,9 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         for (String fieldName : schemaFields.keySet()){
             customWrapperSchema[index++] =
                     buildSchemaParameter(fieldName, schemaFields.get(fieldName), searchable, updateable, nullable, mandatory);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Schema Parameter: " + customWrapperSchema[index++].toString());
+            }
         }
 
         return customWrapperSchema;
@@ -315,7 +318,12 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             final CustomWrapperSchemaParameter subSchemaItem =
                     buildSchemaParameter(fieldName + ARRAY_ITEM_SUFFIX, arrayItemSchema, searchable, updateable, nullable, mandatory);
 
+            if (logger.isTraceEnabled()) {
+                logger.trace("Schema Parameter: " + subSchemaItem.toString());
+            }
+
             final CustomWrapperSchemaParameter[] subSchema = new CustomWrapperSchemaParameter[] { subSchemaItem };
+
 
             return new CustomWrapperSchemaParameter(fieldName,Types.ARRAY,
                     subSchema, searchable, CustomWrapperSchemaParameter.ASC_AND_DESC_SORT,
@@ -573,7 +581,27 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
         final String collectionName = inputValues.get(COLLECTION);
         final String connectionString = inputValues.get(CONNECTION_STRING);
         final boolean ssl = Boolean.parseBoolean(inputValues.get(USE_SSL));
-        
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("CONNECTION PARAMETERS:");
+            logger.trace("User: " + user);
+            logger.trace("Password: " + (StringUtils.isNotBlank(password) ? "(hidden)" : "null"));
+            logger.trace("Host: " + host);
+            logger.trace("Port: " + portAsString);
+            logger.trace("Database: " + dbName);
+            String connectionStringLog = connectionString;
+            if (StringUtils.isNotBlank(connectionStringLog) && connectionStringLog.contains("@")) {
+                int credentialsStartIndex = 10; // "mongodb://"
+                if (connectionStringLog.startsWith("mongodb+srv://")) {
+                    credentialsStartIndex = 14;
+                }
+                String credentials = connectionStringLog.substring(
+                    credentialsStartIndex, connectionStringLog.indexOf("@"));
+                connectionStringLog = connectionStringLog.replace(credentials, "(credentials)");
+            }
+            logger.trace("Connection String: " + connectionStringLog);
+        }
+
         return new MongoDBClient(host, port, user, password, dbName, collectionName, connectionString, ssl, test);
     }
 

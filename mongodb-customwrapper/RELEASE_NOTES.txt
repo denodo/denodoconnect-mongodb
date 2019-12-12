@@ -1,3 +1,7 @@
+[currentversion]
+========
+- Add #46321 - Improve TRACE log during configuration and execution
+
 20191210
 ========
 - Fixed #46322 - Use estimatedDocumentCount() instead of countDocuments()
