@@ -182,7 +182,6 @@ public final class MongoDBConnectionLocator {
             uri.append((port != null) ? port.intValue() : ServerAddress.defaultPort());
 
             uri.append('/').append(db);
-            logger.debug("Connection uri: "+ uri.toString());
             return uri.toString();
         }
     }
