@@ -153,7 +153,6 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
 
         final CustomWrapperConfiguration configuration = super.getConfiguration();
         configuration.setDelegateProjections(true);
-        configuration.setDelegateCompoundFieldProjections(true);
         configuration.setDelegateOrConditions(true);
         configuration.setDelegateOrderBy(true);
         configuration.setAllowedOperators(new String[] {
