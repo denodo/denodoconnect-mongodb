@@ -1,5 +1,6 @@
 [currentversion]
 ========
+-Fixed #47669 - The port parameter shoudn't be mandatory created.
 - Add #46321 - Improve TRACE log during configuration and execution
 
 20191210
@@ -15,6 +16,7 @@
 - Fixed #45099 - Clarify usage of the Field Types in Mongod DB Custom Wrapper Documentation
 - Fixed #44506 - Add information regarding Connectivity Ports and SSL certificate in the
                  MongoDB Custom Wrapper User Manual
+
 
 20190515
 ========
