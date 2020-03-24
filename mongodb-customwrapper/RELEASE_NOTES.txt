@@ -1,5 +1,4 @@
 [currentversion]
 ========
+-Fixed #47669 - The port parameter shoudn't be mandatory created.
 - #47549 - Adapt wrapper to version 8.0
-- #47044 - Remove use of deprecated *DelegateCompoundFieldProjections in wrapper configuration
-
