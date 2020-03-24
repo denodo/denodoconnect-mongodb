@@ -1,5 +1,6 @@
 [currentversion]
 ========
+-Fixed #47669 - The port parameter shoudn't be mandatory created.
 - Add #46321 - Improve TRACE log during configuration and execution
 
 20191210
@@ -92,3 +93,7 @@ Add #33193 - Update mongoDB driver to 3.8.0
 20160107
 ========
 - First version of mongodb-customwrapper-6.0
+=======
+-Fixed #47669 - The port parameter shoudn't be mandatory created.
+- #47549 - Adapt wrapper to version 8.0
+>>>>>>> b968961... -Fixed #47669 - The port parameter shoudn't be mandatory created.

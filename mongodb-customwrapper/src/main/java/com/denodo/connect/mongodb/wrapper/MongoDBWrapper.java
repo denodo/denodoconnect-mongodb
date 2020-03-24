@@ -223,7 +223,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
             if (StringUtils.isNotBlank(mongoClientURI.getUsername()) && mongoClientURI.getPassword() == null) {
                 errors.append("Password is missing. ");
             }
-        } else if (StringUtils.isBlank(dbName) || StringUtils.isBlank(host) || StringUtils.isBlank(portAsString)) {
+        } else if (StringUtils.isBlank(dbName) || StringUtils.isBlank(host)) {
             errors.append("Connection string parameter or Database parameter is mandatory. ");
         } else if (StringUtils.isNotBlank(user) && StringUtils.isBlank(password)) {
             errors.append("Password is missing. ");
