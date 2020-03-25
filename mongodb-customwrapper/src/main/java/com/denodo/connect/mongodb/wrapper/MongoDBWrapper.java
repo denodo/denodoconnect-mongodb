@@ -115,7 +115,7 @@ public class MongoDBWrapper extends AbstractCustomWrapper {
                         true, true, CustomWrapperInputParameterTypeFactory.stringType()),
                 new CustomWrapperInputParameter(
                         FIELDS,
-                        "field1[[:type1],field2[:type2],...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
+                        "field1:type1[,field2:type2,...] Fields document to retrieve from the collection. Type, when specified, should be one of java.sql.Types ",
                         false, true, CustomWrapperInputParameterTypeFactory.longStringType()),
                 new CustomWrapperInputParameter(
                         INTROSPECTION_QUERY,
