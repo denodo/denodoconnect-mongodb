@@ -9,7 +9,7 @@
     <artifactId>denodo-mongodb-customwrapper-6.0</artifactId>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
-    <version>20191210</version>
+    <version>20200406</version>
 
 
     <properties>
