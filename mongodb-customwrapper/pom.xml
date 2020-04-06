@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 	<description>${project.artifactId}</description>
     <name>${project.artifactId}</name>
-    <version>20191210</version>
+    <version>20200406</version>
 
 
     <properties>

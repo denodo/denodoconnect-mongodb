@@ -1,6 +1,7 @@
-[currentversion]
+20200406
 ========
--Fixed #47669 - The port parameter shoudn't be mandatory created.
+- Add #47785 - Enable in the log the name of the field that fails during the processing
+- Fixed #47669 - The port parameter shoudn't be mandatory created.
 - Add #46321 - Improve TRACE log during configuration and execution
 
 20191210

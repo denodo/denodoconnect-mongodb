@@ -24,6 +24,7 @@ package com.denodo.connect.mongodb.wrapper.util;
 import java.sql.Types;
 import java.util.ArrayList;
 
+import com.denodo.vdb.engine.customwrapper.CustomWrapperException;
 import com.denodo.vdb.engine.customwrapper.CustomWrapperSchemaParameter;
 import org.apache.log4j.Logger;
 import org.bson.BsonTimestamp;
@@ -38,7 +39,7 @@ public final class ResultUtils {
     private ResultUtils() {
     }
 
-    public static Object buildResultColumnValue(Document document, String fullName, CustomWrapperSchemaParameter[] schema) {
+    public static Object buildResultColumnValue(Document document, String fullName, CustomWrapperSchemaParameter[] schema) throws  CustomWrapperException{
 
         String[] tokens = fullName.split("\\.");
 
@@ -72,69 +73,69 @@ public final class ResultUtils {
         return null;
     }
 
-    private static Object doBuildResultColumnValue(Object value, CustomWrapperSchemaParameter schemaParam) {
-
-        if (logger.isTraceEnabled()) {
-            logger.trace(
-                    String.format("Building VDP column '%s' with type '%s' and value '%s'",
-                            schemaParam.getName(), schemaParam.getType(), (value == null? "null" : value.toString())));
-        }
-
-        if (schemaParam != null) {
-            if (schemaParam.getType() == Types.ARRAY ) {
-                ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
-                if(mongoDBArray!=null){
-                    Object[][] vdpArray = new Object[mongoDBArray.size()][1];
-                    int i = 0;
-                    for (Object element : mongoDBArray) {
-                        CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
-                        vdpArray[i++][0] = doBuildResultColumnValue(element, elementSchema[0]);
-                    }
-
-                    return vdpArray;}
-                else{
-                    return null;
-                }
-
-            } else if (schemaParam.getType() == Types.STRUCT) {
-                Document mongoDBRecord =  (Document) value;
-
-
-                if(mongoDBRecord!=null){
-                    Object[] vdpRecord = new Object[schemaParam.getColumns().length];
-                    int i = 0;
-                    for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
-                        Object fieldValue = mongoDBRecord.get(param.getName());
-                        vdpRecord[i++] = doBuildResultColumnValue(fieldValue, param);
-                    }
-
-
-                    return vdpRecord;
-                }else{
-                    return null;
-                }
-
-            } else if (schemaParam.getType() == Types.TIMESTAMP) {
-
-                if (value != null) {
-
-                    if (value instanceof BsonTimestamp) {
-                        // BsonTimestamp, precision: second (UNIX time_t)
-                        final BsonTimestamp mongoDBTimestamp =  (BsonTimestamp) value;
-                        return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
-                    } else {
-                        // Most probably Date (BSON Date, with time), precision: millisecond
-                        return value;
-                    }
-
-                }else{
-                    return null;
-                }
+    private static Object doBuildResultColumnValue(Object value, CustomWrapperSchemaParameter schemaParam)
+        throws CustomWrapperException {
+        try {
+            if (logger.isTraceEnabled()) {
+                logger.trace(String
+                    .format("Building VDP column '%s' with type '%s' and value '%s'", schemaParam.getName(), schemaParam.getType(), (value == null ? "null" : value.toString())));
             }
 
+            if (schemaParam != null) {
+                if (schemaParam.getType() == Types.ARRAY) {
+                    ArrayList<Object> mongoDBArray = (ArrayList<Object>) value;
+                    if (mongoDBArray != null) {
+                        Object[][] vdpArray = new Object[mongoDBArray.size()][1];
+                        int i = 0;
+                        for (Object element : mongoDBArray) {
+                            CustomWrapperSchemaParameter[] elementSchema = schemaParam.getColumns();
+                            vdpArray[i++][0] = doBuildResultColumnValue(element, elementSchema[0]);
+                        }
+
+                        return vdpArray;
+                    } else {
+                        return null;
+                    }
+
+                } else if (schemaParam.getType() == Types.STRUCT) {
+                    Document mongoDBRecord = (Document) value;
+
+                    if (mongoDBRecord != null) {
+                        Object[] vdpRecord = new Object[schemaParam.getColumns().length];
+                        int i = 0;
+                        for (CustomWrapperSchemaParameter param : schemaParam.getColumns()) {
+                            Object fieldValue = mongoDBRecord.get(param.getName());
+                            vdpRecord[i++] = doBuildResultColumnValue(fieldValue, param);
+                        }
+
+                        return vdpRecord;
+                    } else {
+                        return null;
+                    }
+
+                } else if (schemaParam.getType() == Types.TIMESTAMP) {
+
+                    if (value != null) {
+
+                        if (value instanceof BsonTimestamp) {
+                            // BsonTimestamp, precision: second (UNIX time_t)
+                            final BsonTimestamp mongoDBTimestamp = (BsonTimestamp) value;
+                            return new java.sql.Timestamp(mongoDBTimestamp.getTime() * 1000L);
+                        } else {
+                            // Most probably Date (BSON Date, with time), precision: millisecond
+                            return value;
+                        }
+
+                    } else {
+                        return null;
+                    }
+                }
+
+            }
+
+            return value;
+        } catch ( Exception e) {
+            throw new CustomWrapperException("There is an error building VDP column '"+ schemaParam.getName()+"', with type "+schemaParam.getType() +".  "+ e.getMessage(),e);
         }
-
-        return value;
     }
-
 }
