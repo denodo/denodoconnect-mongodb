@@ -1,5 +1,6 @@
-[currentversion]
+currentversion
 ========
 -Fixed #47669 - The port parameter shoudn't be mandatory created.
 - #47549 - Adapt wrapper to version 8.0
+- Add #47785 - Enable in the log the name of the field that fails during the processing
 

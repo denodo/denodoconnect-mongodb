@@ -9,10 +9,9 @@
     <artifactId>denodo-mongodb-customwrapper-8.0</artifactId>
     <packaging>jar</packaging>
 	<description>${project.artifactId}</description>
+
     <name>${project.artifactId}</name>
-    <version>20200325</version>
-
-
+    <version>20200406</version>
     <properties>
       <java.version>1.8</java.version>
       <errorprone.javac.version>9+181-r4173-1</errorprone.javac.version>
