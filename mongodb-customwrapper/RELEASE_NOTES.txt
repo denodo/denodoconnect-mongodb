@@ -1,3 +1,6 @@
+20200507
+========
+- Fixed metadata for Denodo 8.
 20200506
 ========
 - First version of Denodo Mongodb Customwrapper for Denodo 8.0
